@@ -64,7 +64,7 @@
 
   <style type="text/css">
 .spoiler {
-  display: inline-flex;
+  display: inline;
 }
 p.spoiler {
   display: flex;
@@ -99,7 +99,8 @@ p.spoiler {
 
     <div class="wrapper">
 
-      <div class="header">
+      
+<div class="header">
   <div class="flex-container">
     <div class="header-inner">
       <div class="site-brand-container">
@@ -125,6 +126,23 @@ p.spoiler {
           
         </ul>
       </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link language-link-active" href="/linux-userland/shellcode/seccomp">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/seccomp">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-userland/shellcode/seccomp">KR</a>
+    
+  
+</div>
+
     </div>
   </div>
 </div>
@@ -135,7 +153,8 @@ p.spoiler {
           <article id="post">
 
   
-    <div class="post-head">
+    
+<div class="post-head">
     <div class="post-info">
         <div class="post-title">
             
@@ -145,9 +164,31 @@ p.spoiler {
     </div>
     <div class="h-line-primary"></div>
     
+<div class="language-switcher">
+  
+    
+      <a class="language-link language-link-active" href="/linux-userland/shellcode/seccomp">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/seccomp">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-userland/shellcode/seccomp">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="restricted.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="egg-hunter.html">次のページへ</a></div>
+        </div>
+    
     
         <div class="column" title="目次">
-            
             <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#seccomp"><span class="toc-text">seccomp</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#seccomp%E3%81%A8%E3%81%AF"><span class="toc-text">seccompとは</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#seccomp%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9"><span class="toc-text">seccompの使い方</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#seccomp-tools"><span class="toc-text">seccomp-tools</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A6%81%E6%AD%A2%E3%81%99%E3%81%B9%E3%81%8D%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E3%82%B3%E3%83%BC%E3%83%AB"><span class="toc-text">禁止すべきシステムコール</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%88%E3%81%AE%E4%B8%8D%E5%82%99"><span class="toc-text">ブラックリストの不備</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#openat%E3%81%A8execveat"><span class="toc-text">openatとexecveat</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#creat%E3%81%A8procfs"><span class="toc-text">creatとprocfs</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ptrace-process-vm-readv-process-vm-writev"><span class="toc-text">ptrace, process_vm_readv, process_vm_writev</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%B3%E3%83%B3%E3%83%86%E3%83%8A%E3%82%A8%E3%82%B9%E3%82%B1%E3%83%BC%E3%83%97"><span class="toc-text">コンテナエスケープ</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%83%9B%E3%83%AF%E3%82%A4%E3%83%88%E3%83%9C%E3%83%83%E3%82%AF%E3%82%B9%E3%81%AE%E4%B8%8D%E5%82%99"><span class="toc-text">ホワイトボックスの不備</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%95%E6%95%B0%E3%81%AE%E7%A2%BA%E8%AA%8D%E4%B8%8D%E5%82%99"><span class="toc-text">引数の確認不備</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%B5%E3%82%A4%E3%83%89%E3%83%81%E3%83%A3%E3%83%8D%E3%83%AB%E6%94%BB%E6%92%83"><span class="toc-text">サイドチャネル攻撃</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%A8%E3%83%A9%E3%83%BC%E3%81%AE%E8%A6%B3%E6%B8%AC"><span class="toc-text">エラーの観測</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%A6%E7%90%86%E6%99%82%E9%96%93%E3%81%AE%E8%A8%88%E6%B8%AC"><span class="toc-text">処理時間の計測</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3%E3%81%A8%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E3%82%B3%E3%83%BC%E3%83%AB%E7%95%AA%E5%8F%B7%E3%81%AE%E6%A4%9C%E8%A8%BC%E4%B8%8D%E5%82%99"><span class="toc-text">アーキテクチャとシステムコール番号の検証不備</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3%E3%81%AE%E6%A4%9C%E8%A8%BC%E4%B8%8D%E5%82%99"><span class="toc-text">アーキテクチャの検証不備</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#x32-ABI%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">x32 ABIの利用</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%81%9D%E3%81%AE%E4%BB%96%E3%81%AE%E5%9B%9E%E9%81%BF%E6%89%8B%E6%B3%95"><span class="toc-text">その他の回避手法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%AB%E3%83%BC%E3%83%8D%E3%83%AB%E3%82%84%E3%83%A9%E3%82%A4%E3%83%96%E3%83%A9%E3%83%AA%E3%81%AE%E6%AC%A0%E9%99%A5%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">カーネルやライブラリの欠陥の利用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%96%E3%83%97%E3%83%AD%E3%82%BB%E3%82%B9%E3%81%AE%E6%82%AA%E7%94%A8"><span class="toc-text">他プロセスの悪用</span></a></li></ol></li></ol>
         </div>
     
@@ -155,57 +196,6 @@ p.spoiler {
 
     <div class="post-content">
     <p>Linuxではseccompと呼ばれるサンドボックス機構が提供されています。seccompは正しく使えば非常に強力ですが、フィルタの設定を誤ると簡単に回避できてしまいます。この章ではseccompの様々な回避手法について紹介します。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#seccomp">seccomp</a>
-<ul>
-<li><a href="#seccomp--">seccompとは</a></li>
-<li><a href="#seccomp----">seccompの使い方</a></li>
-<li><a href="#seccomp-tools">seccomp-tools</a></li>
-<li><a href="#------------">禁止すべきシステムコール</a></li>
-</ul>
-</li>
-<li><a href="#----------">ブラックリストの不備</a>
-<ul>
-<li><a href="#openat-execveat">openatとexecveat</a></li>
-<li><a href="#creat-procfs">creatとprocfs</a></li>
-<li><a href="#ptrace--process--vm--readv--process--vm--writev">ptrace, process_vm_readv, process_vm_writev</a></li>
-<li><a href="#---------">コンテナエスケープ</a></li>
-</ul>
-</li>
-<li><a href="#-----------">ホワイトボックスの不備</a>
-<ul>
-<li><a href="#-------">引数の確認不備</a></li>
-</ul>
-</li>
-<li><a href="#---------">サイドチャネル攻撃</a>
-<ul>
-<li><a href="#------">エラーの観測</a></li>
-<li><a href="#-------">処理時間の計測</a></li>
-</ul>
-</li>
-<li><a href="#----------------------">アーキテクチャとシステムコール番号の検証不備</a>
-<ul>
-<li><a href="#------------">アーキテクチャの検証不備</a></li>
-<li><a href="#x32-abi---">x32 ABIの利用</a></li>
-</ul>
-</li>
-<li><a href="#--------">その他の回避手法</a>
-<ul>
-<li><a href="#----------------">カーネルやライブラリの欠陥の利用</a></li>
-<li><a href="#--------">他プロセスの悪用</a>
-<ul>
-<li><a href="#kill--tkill--tgkill">kill, tkill, tgkill</a></li>
-<li><a href="#prlimit64">prlimit64</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="seccomp">seccomp</h2>
 <p>seccompの回避方法について勉強する前に、seccompの仕組みについて知っておきましょう。</p>
 <h3 id="seccompとは">seccompとは</h3>
@@ -259,16 +249,15 @@ eBPFの<a href="../../linux-kernel/LK06/ebpf">脆弱性を悪用する講義</a>
 <li><code>execve</code></li>
 <li><code>execveat</code></li>
 </ul>
-<p>また、ファイル読み書きに関しては次のシステムコールを禁止します。<code>creat</code>は忘れがちなので注意が必要ですね。</p>
+<p>また、ファイル読み書きに関しては次のシステムコールを禁止します。<code>creat</code>は忘れがちなので注意が必要です。</p>
 <ul>
 <li><code>creat</code></li>
 <li><code>open</code></li>
 <li><code>openat</code></li>
 <li><code>openat2</code> (Linux 5.6以降で追加)</li>
 </ul>
-<p>もしプログラムがroot権限で動いているなら、ファイルopenに関して次のシステムコールも禁止する必要があります。（当然root権限の場合は他にもたくさんのシステムコールを禁止しないといけないです。）</p>
+<p>もしプログラムがroot権限で動いているなら、ファイルopenに関して次のシステムコールも禁止する必要があります。（当然root権限の場合は他にもたくさんのシステムコールを禁止しないといけません。）</p>
 <ul>
-<li><code>name_to_handle_at</code></li>
 <li><code>open_by_handle_at</code></li>
 </ul>
 <p>DoSなどの悪さを禁止するなら、他にも</p>
@@ -278,7 +267,7 @@ eBPFの<a href="../../linux-kernel/LK06/ebpf">脆弱性を悪用する講義</a>
 <li><code>kill</code> / <code>tkill</code> / <code>tgkill</code></li>
 <li><code>prlimit64</code></li>
 </ul>
-<p>などさまざまなシステムコールを禁止する必要があります。<br>
+<p>など、上に列挙したシステムコール以外にも、さまざまなシステムコールを禁止する必要があります。<br>
 このように、seccompをブラックリスト方式で使うのは非常に大変です。そのため、特別な理由がない限りはプログラムが使う安全なシステムコールのみを許可するホワイトリスト方式で使用しましょう。</p>
 <h2 id="ブラックリストの不備">ブラックリストの不備</h2>
 <p>ここからはseccompの回避方法について説明します。まず、ブラックリスト方式を利用した際の不備を悪用する方法を紹介します。</p>
@@ -352,6 +341,12 @@ eBPFの<a href="../../linux-kernel/LK06/ebpf">脆弱性を悪用する講義</a>
 
 <div style="margin-top: 1em">
     <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="restricted.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="egg-hunter.html">次のページへ</a></div>
+        </div>
     
 </div>
 

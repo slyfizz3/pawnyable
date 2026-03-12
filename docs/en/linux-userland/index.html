@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-userland/index.html">
+
+    <meta name="og:title" content="Linux Userland Exploitation - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Linux Userland Exploitation | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-userland/">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-userland/">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-userland/">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Linux Userland Exploitation
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-userland/">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-userland/">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-userland/">KR</a>
+    
+  
+</div>
+
+    
+    
+</div>
+
+    <div class="post-content">
+    <p>In this chapter, the chick instructor walks through Linux userland exploitation. Plenty of public material already covers common userland exploitation, so this section focuses on the ideas that matter most in practice.</p>
+<ul>
+<li>Prerequisites
+<ul>
+<li><a href="introduction/security.html">Security mechanisms</a></li>
+<li><a href="introduction/primitive.html">About primitives</a></li>
+<li><a href="introduction/environment.html">Setting up the environment</a></li>
+</ul>
+</li>
+<li>Shellcode
+<ul>
+<li><a href="shellcode/how2write.html">How to write shellcode</a></li>
+<li><a href="shellcode/restricted.html">Restricted shellcode</a></li>
+<li><a href="shellcode/seccomp.html">Bypassing seccomp</a></li>
+<li><a href="shellcode/egg-hunter.html">Egg Hunter</a></li>
+<li><a href="shellcode/byog.html">Bring Your Own Gadget (WIP)</a></li>
+</ul>
+</li>
+<li>Stack
+<ul>
+<li><a href="stack/bof.html">Stack Buffer Overflow</a></li>
+<li><a href="stack/rop.html">Return Oriented Programming</a></li>
+<li><a href="stack/fork.html">fork and canaries</a></li>
+<li><a href="stack/thread.html">Threads and canaries</a></li>
+</ul>
+</li>
+<li>Heap
+<ul>
+<li><a href="heap/call-chain.html">Call/Jump Oriented Programming</a></li>
+<li><a href="heap/bof.html">Heap Buffer Overflow</a></li>
+<li><a href="heap/uaf.html">Use-after-Free</a></li>
+<li><a href="heap/spray1.html">Heap Spray 1: placing data at a chosen address</a></li>
+<li><a href="heap/spray2.html">Heap Spray 2: placing two objects next to each other</a></li>
+<li><a href="heap/spray3.html">Heap Spray 3: fixing the initial heap state</a></li>
+</ul>
+</li>
+<li>Other bug classes
+<ul>
+<li><a href="others/fsb.html">Format String Bug</a></li>
+<li><a href="others/integer.html">Integer Overflow</a></li>
+<li><a href="others/confusion.html">Type Confusion</a></li>
+<li><a href="others/nullpo.html">NULL pointer dereference</a></li>
+</ul>
+</li>
+</ul>
+<div class="column" title="Chick instructor">
+  TBD :)
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

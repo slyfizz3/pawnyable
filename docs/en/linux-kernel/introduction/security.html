@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/introduction/security.html">
+
+    <meta name="og:title" content="Security Mechanisms - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Security Mechanisms | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/introduction/security">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/introduction/security">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/introduction/security">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Security Mechanisms
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/introduction/security">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/introduction/security">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/introduction/security">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="debugging.html">Previous</a></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="compile-and-transfer.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#SMEP-Supervisor-Mode-Execution-Prevention"><span class="toc-text">SMEP (Supervisor Mode Execution Prevention)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SMAP-Supervisor-Mode-Access-Prevention"><span class="toc-text">SMAP (Supervisor Mode Access Prevention)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KASLR-FGKASLR"><span class="toc-text">KASLR &#x2F; FGKASLR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KPTI-Kernel-Page-Table-Isolation"><span class="toc-text">KPTI (Kernel Page-Table Isolation)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KADR-Kernel-Address-Display-Restriction"><span class="toc-text">KADR (Kernel Address Display Restriction)</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>Linux provides several security mechanisms to mitigate kernel exploitation. Some of them are hardware-level protections similar to NX in userland, so the same knowledge also applies directly to Windows kernel exploitation.</p>
+<p>This section focuses on protections specific to the kernel. Device drivers also have security features such as Stack Canary, but there is nothing especially unique about them here, so we will not discuss them.</p>
+<p>For kernel boot parameters, the <a target="_blank" rel="noopener" href="https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/kernel-parameters.txt">official documentation</a> is a helpful reference.</p>
+<h2 id="SMEP-Supervisor-Mode-Execution-Prevention">SMEP (Supervisor Mode Execution Prevention)</h2>
+<p>Among kernel security features, the most representative ones are SMEP and SMAP.<br>
+<strong>SMEP</strong> prevents the kernel from suddenly executing code in user space while already running in kernel mode. Conceptually it is similar to NX.</p>
+<p>SMEP is a mitigation, but not a complete defense by itself. For example, suppose a kernel vulnerability lets an attacker control RIP. If SMEP is disabled, the attacker can execute shellcode prepared in user space like this:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> *shellcode = mmap(<span class="literal">NULL</span>, <span class="number">0x1000</span>, PROT_READ|PROT_WRITE|PROT_EXECUTE,</span><br><span class="line">                       MAP_ANONYMOUS | MAP_PRIVATE, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line"><span class="built_in">memcpy</span>(shellcode, SHELLCODE, <span class="keyword">sizeof</span>(SHELLCODE));</span><br><span class="line"></span><br><span class="line">control_rip(shellcode); <span class="comment">// RIP = shellcode</span></span><br></pre></td></tr></table></figure>
+<p>However, if SMEP is enabled, trying to execute shellcode placed in user space as above triggers a kernel panic. As a result, even if the attacker gains control of RIP, turning that into privilege escalation becomes much harder.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="Wolf" ></div>
+  <p class="says">
+    Then what should a kernel shellcode actually do?<br>
+    We will study privilege-escalation techniques in another chapter.
+  </p>
+</div>
+<p>SMEP can be enabled with a QEMU command-line option. If the <code>-cpu</code> option contains <code>+smep</code> as below, SMEP is enabled.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-cpu kvm64,+smep</span><br></pre></td></tr></table></figure>
+<p>You can also confirm it from inside the guest by looking at <code>/proc/cpuinfo</code>.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/cpuinfo | grep smep</span><br></pre></td></tr></table></figure>
+<p>SMEP is a hardware security feature. It becomes active when bit 21 of the <code>CR4</code> register is set.</p>
+<h2 id="SMAP-Supervisor-Mode-Access-Prevention">SMAP (Supervisor Mode Access Prevention)</h2>
+<p>It is obvious that user space should not be able to read or write kernel memory, but Linux also has a mechanism called <strong>SMAP</strong> (Supervisor Mode Access Prevention), which prevents the kernel from reading or writing user-space memory directly. To access user-space data from kernel space, code is supposed to use helper functions such as <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/htmldocs/kernel-api/API---copy-from-user.html"><code>copy_from_user</code></a> and <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/htmldocs/kernel-api/API---copy-to-user.html"><code>copy_to_user</code></a>.<br>
+At first glance, it may seem strange to forbid the more privileged kernel from directly accessing the less privileged user space. Why is that useful?</p>
+<p>I do not know the full historical background, but the benefits of SMAP can be thought of as mainly two things.</p>
+<p>The first is preventing stack pivots.<br>
+In the SMEP example, control over RIP was not enough to run shellcode. However, the Linux kernel contains an enormous amount of machine code, so gadgets like the following are guaranteed to exist.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov esp, 0x12345678; ret;</span><br></pre></td></tr></table></figure>
+<p>Whatever value goes into <code>ESP</code>, once this gadget is executed, <code>RSP</code> will be changed to that value<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>. On the other hand, such low addresses can often be allocated from userland with <code>mmap</code>, so even if SMEP is enabled, an attacker who controls RIP can still execute a ROP chain like this:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> *p = mmap(<span class="number">0x12340000</span>, <span class="number">0x10000</span>, ...);</span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> *chain = (<span class="type">unsigned</span> <span class="type">long</span>*)(p + <span class="number">0x5678</span>);</span><br><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = ...;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">control_rip(rop_mov_esp_12345678h);</span><br></pre></td></tr></table></figure>
+<p>If SMAP is enabled, data mapped in user space such as the ROP chain cannot be read from kernel space, so the <code>ret</code> in the stack pivot will cause a kernel panic.<br>
+In this way, SMAP strengthens SMEP by mitigating ROP-based attacks as well.</p>
+<p>The second benefit of SMAP is preventing bugs that are easy to make in kernel programming.<br>
+This relates to mistakes that kernel programmers, for example device driver authors, can accidentally write. Suppose a driver contains code like this. (You do not need to understand the exact function signature yet.)</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> buffer[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">long</span> <span class="title function_">mydevice_ioctl</span><span class="params">(<span class="keyword">struct</span> file *filp, <span class="type">unsigned</span> <span class="type">int</span> cmd, <span class="type">unsigned</span> <span class="type">long</span> arg)</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (cmd == <span class="number">0xdead</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(buffer, arg, <span class="number">0x10</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (cmd == <span class="number">0xcafe</span>) &#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(arg, buffer, <span class="number">0x10</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>You can imagine that <code>memcpy</code> is reading from and writing to the global variable <code>buffer</code>.</p>
+<p>From user space, the module can be used like this to store 0x10 bytes of data:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> fd = open(<span class="string">&quot;/dev/mydevice&quot;</span>, O_RDWR);</span><br><span class="line"></span><br><span class="line"><span class="type">char</span> src[<span class="number">0x10</span>] = <span class="string">&quot;Hello, World!&quot;</span>;</span><br><span class="line"><span class="type">char</span> dst[<span class="number">0x10</span>];</span><br><span class="line"></span><br><span class="line">ioctl(fd, <span class="number">0xdead</span>, src);</span><br><span class="line">ioctl(fd, <span class="number">0xcafe</span>, dst);</span><br><span class="line"></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, dst); <span class="comment">// --&gt; Hello, World!</span></span><br></pre></td></tr></table></figure>
+<p>If you are used to user-space programming, this does not look unusual. The <code>memcpy</code> size is fixed, and at first glance it seems fine.</p>
+<p>However, if SMAP is disabled, the following call is also accepted:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ioctl(fd, <span class="number">0xdead</span>, <span class="number">0xffffffffdeadbeef</span>);</span><br></pre></td></tr></table></figure>
+<p><code>0xffffffffdeadbeef</code> is not a valid user-space address, but suppose for the sake of example that it points into sensitive kernel data. The driver would then execute:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">memcpy(buffer, 0xffffffffdeadbeef, 0x10);</span><br></pre></td></tr></table></figure>
+<p>and end up reading that secret data. If a driver uses <code>memcpy</code> directly on an address received from user space without any checks, user space effectively gains arbitrary read and write access to kernel memory.<br>
+For people not used to kernel programming, this kind of vulnerability is very easy to overlook, but the impact is severe because it gives AAR/AAW. SMAP is useful partly because it helps prevent exactly this kind of mistake.</p>
+<p>SMAP can be enabled through the QEMU command line. If the <code>-cpu</code> option contains <code>+smap</code> as below, SMAP is enabled.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-cpu kvm64,+smap</span><br></pre></td></tr></table></figure>
+<p>You can also confirm it from inside the guest by checking <code>/proc/cpuinfo</code>.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/cpuinfo | grep smap</span><br></pre></td></tr></table></figure>
+<p>Like SMEP, SMAP is a hardware security feature. It is enabled by setting bit 22 of the <code>CR4</code> register.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="Wolf" ></div>
+  <p class="says">
+    On Intel CPUs there are instructions called <a href="https://www.felixcloutier.com/x86/stac" target="_blank">STAC</a> and <a href="https://www.felixcloutier.com/x86/clac" target="_blank">CLAC</a> that set EFLAGS.AC (Alignment Check) to 1 or 0. While AC is set, SMAP is temporarily bypassed.
+  </p>
+</div>
+<h2 id="KASLR-FGKASLR">KASLR / FGKASLR</h2>
+<p>In user space there was ASLR (Address Space Layout Randomization), which randomizes addresses. Similarly, Linux also has a mitigation called <strong>KASLR</strong> (Kernel ASLR), which randomizes the addresses of the Linux kernel and kernel-module code and data regions.<br>
+Once the kernel is loaded, it does not move, so KASLR only takes effect once at boot time. If you can leak even one function or data address from the Linux kernel, you can recover the base address.</p>
+<p>Since around <a target="_blank" rel="noopener" href="https://lwn.net/Articles/824307/">2020</a>, an even stronger variant called <strong>FGKASLR</strong> (Function Granular KASLR) has appeared. As of 2022 it seems to be disabled by default, but it randomizes the location of each kernel function individually. Even if you can leak the address of one kernel function, you can no longer derive the base address.<br>
+However, FGKASLR does not randomize sections such as the data segment, so if you can leak a data address, you can still obtain the base address. That said, even the base address is no longer enough to compute the address of a specific function, although it can still be useful for some special attack vectors that appear later.</p>
+<p>Remember that addresses are shared across kernel space. Even if one device driver is not exploitable because of KASLR, another driver leaking a kernel address can make the first one exploitable too, because the underlying kernel addresses are shared.</p>
+<p>KASLR can be disabled with a kernel boot argument. If QEMU’s <code>-append</code> option includes <code>nokaslr</code>, KASLR is disabled.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-append &quot;... nokaslr ...&quot;</span><br></pre></td></tr></table></figure>
+<h2 id="KPTI-Kernel-Page-Table-Isolation">KPTI (Kernel Page-Table Isolation)</h2>
+<p>In 2018, a side-channel attack called <a target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/Meltdown">Meltdown</a> was discovered on Intel and other CPUs. We will not explain the vulnerability itself here, but it was a serious issue that allowed user mode to read kernel memory, which could for example defeat KASLR. To mitigate Meltdown, recent Linux kernels enable <strong>KPTI</strong> (Kernel Page-Table Isolation), also known by the older name <strong>KAISER</strong>.</p>
+<p>As you know, page tables are used to translate virtual addresses into physical addresses. This security feature separates those page tables between user mode and kernel mode<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>. KPTI exists specifically to stop Meltdown, so it is not usually a direct obstacle in ordinary kernel exploitation. However, if you build a ROP chain in kernel space while KPTI is enabled, problems occur when returning back to user space at the end. We will explain the concrete solution in the Kernel ROP chapter.</p>
+<p>KPTI can be controlled by kernel boot arguments. If the QEMU <code>-append</code> option includes <code>pti=on</code>, KPTI is enabled. If it includes <code>pti=off</code> or <code>nopti</code>, KPTI is disabled.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-append &quot;... pti=on ...&quot;</span><br></pre></td></tr></table></figure>
+<p>You can also check it via <code>/sys/devices/system/cpu/vulnerabilities/meltdown</code>. If it says <code>Mitigation: PTI</code> as below, KPTI is enabled.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># cat /sys/devices/system/cpu/vulnerabilities/meltdown</span><br><span class="line">Mitigation: PTI</span><br></pre></td></tr></table></figure>
+<p>If disabled, it will say <code>Vulnerable</code>.</p>
+<p>Because KPTI works by switching page tables, user space and kernel space can be switched by manipulating the <code>CR3</code> register. In Linux, OR’ing <code>0x1000</code> into <code>CR3</code> (that is, changing the PDBR) switches from kernel space back to user space. This behavior is implemented in <a target="_blank" rel="noopener" href="https://github.com/torvalds/linux/blob/master/arch/x86/entry/entry_64.S"><code>swapgs_restore_regs_and_return_to_usermode</code></a>, but we will cover the details in the chapter where we actually write the exploit.</p>
+<h2 id="KADR-Kernel-Address-Display-Restriction">KADR (Kernel Address Display Restriction)</h2>
+<p>Linux lets you read function names and addresses from <code>/proc/kallsyms</code>. In addition, some device drivers print debug information using functions such as <code>printk</code>, and users can read that output via commands such as <code>dmesg</code>.<br>
+Linux therefore also has a mechanism to prevent address leaks of kernel functions, data, and heap objects. I do not think it has an official name, but the <a target="_blank" rel="noopener" href="https://inaz2.hatenablog.com/entry/2015/03/27/021422">reference article</a> calls it <strong>KADR</strong> (Kernel Address Display Restriction), so this site uses that term too.</p>
+<p>This behavior can be controlled with <code>/proc/sys/kernel/kptr_restrict</code>. If <code>kptr_restrict</code> is 0, address display is unrestricted. If it is 1, users with the <code>CAP_SYSLOG</code> capability can still see addresses. If it is 2, kernel addresses are hidden even from privileged users.<br>
+If KADR is disabled, you may not need any address leak at all, which can make exploitation much easier, so it is worth checking first.</p>
+<hr>
+<div class="column" title="Exercise">
+  Perform the following steps on the kernel from <a href="../LK01/distfiles/LK01.tar.gz">practice problem LK01</a>. (Start from the state where you already have a root shell from the previous exercise.)<br>
+  (1) Read <code>run.sh</code> and check whether KASLR, KPTI, SMAP, and SMEP are enabled.<br>
+  (2) Boot the kernel with options that enable both SMAP and SMEP, and verify through <code>/proc/cpuinfo</code> that they are enabled. (After checking, disable them again.)<br>
+  (3) In the output of <code>head /proc/kallsyms</code>, the first address shown is the kernel base address. Check what that base address becomes when KASLR is disabled. (Hint: pay attention to KADR.)
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>On x64, the result of operating on a 32-bit register is extended to 64 bits. <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>Only the system-call entry path is shared between user and kernel space. <a href="#fnref2" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="debugging.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="compile-and-transfer.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

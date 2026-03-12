@@ -1,0 +1,47 @@
+<%
+const locale = page.lang || config.language || 'ja';
+const localeLabels = { ja: 'JA', en: 'EN', kr: 'KR' };
+const translationPool = []
+  .concat(site.pages && site.pages.toArray ? site.pages.toArray() : [])
+  .concat(site.posts && site.posts.toArray ? site.posts.toArray() : []);
+function normalizedSourceKey(entry) {
+  if (!entry) return null;
+  if (entry.translation_key) return entry.translation_key;
+  if (!entry.source) return null;
+  return entry.source.replace(/\.(en|kr)\.md$/, '.md');
+}
+const currentTranslationKey = normalizedSourceKey(page);
+function findTranslation(targetLocale) {
+  if (!currentTranslationKey) return null;
+  return translationPool.find(function(entry) {
+    return normalizedSourceKey(entry) === currentTranslationKey && (entry.lang || config.language) === targetLocale;
+  }) || null;
+}
+function homePath(targetLocale) {
+  return targetLocale === 'ja' ? '/' : '/' + targetLocale + '/';
+}
+const localizedHomePage = is_home() || page.layout === 'index' || /^(?:en\/|kr\/)?index\.html$/.test(page.path || '');
+function localePath(targetLocale) {
+  if (localizedHomePage) return homePath(targetLocale);
+  if (targetLocale === locale) return page.path ? url_for(page.path) : '/';
+  const translated = findTranslation(targetLocale);
+  return translated ? url_for(translated.path) : null;
+}
+const languageLinks = ['ja', 'en', 'kr'].map(function(targetLocale) {
+  return {
+    locale: targetLocale,
+    label: localeLabels[targetLocale],
+    href: localePath(targetLocale),
+    active: targetLocale === locale,
+  };
+});
+%>
+<div class="language-switcher">
+  <% languageLinks.forEach(function(link) { %>
+    <% if (link.href) { %>
+      <a class="language-link<%= link.active ? ' language-link-active' : '' %>" href="<%= link.href %>"><%= link.label %></a>
+    <% } else { %>
+      <span class="language-link language-link-disabled"><%= link.label %></span>
+    <% } %>
+  <% }) %>
+</div>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="kr">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//kr/linux-kernel/LK01/practice.html">
+
+    <meta name="og:title" content="LK01 관련 연습 문제 - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>LK01 관련 연습 문제 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/kr/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/kr/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/kr/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/practice">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK01/practice">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK01/practice">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                LK01 관련 연습 문제
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/practice">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK01/practice">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK01/practice">KR</a>
+    
+  
+</div>
+
+    
+    
+        <div class="column" title="목차">
+            
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>여기까지 왔다면 LK01에서 다루는 핵심 exploit 패턴은 모두 본 셈입니다. 다음 단계는 비슷한 챌린지를 직접 풀면서 완화 기법과 인터페이스가 조금 달라져도 같은 사고 과정을 적용하는 것입니다.</p>
+<p>연습에서는 다음에 집중하면 좋습니다.</p>
+<ul>
+<li>exploit를 처음부터 다시 작성하기</li>
+<li>드라이버가 조금 바뀌어도 공격 경로를 재구성하기</li>
+<li>primitive는 달라져도 권한 상승 목표를 유지하기</li>
+</ul>
+<p>문서를 한 줄씩 따라가지 않고도 이 아이디어들을 재현할 수 있다면, 더 어려운 커널 pwn 문제로 넘어갈 준비가 된 것입니다.</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

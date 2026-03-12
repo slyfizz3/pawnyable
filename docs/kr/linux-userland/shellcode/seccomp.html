@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="kr">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//kr/linux-userland/shellcode/seccomp.html">
+
+    <meta name="og:title" content="seccomp 우회 - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>seccomp 우회 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/kr/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/kr/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/kr/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-userland/shellcode/seccomp">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/seccomp">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-userland/shellcode/seccomp">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                seccomp 우회
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-userland/shellcode/seccomp">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/seccomp">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-userland/shellcode/seccomp">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="restricted.html">이전 페이지</a></div>
+            <div class="pagination-index"><a href="../index.html">목차</a></div>
+            <div class="pagination-fd"><a href="egg-hunter.html">다음 페이지</a></div>
+        </div>
+    
+    
+        <div class="column" title="목차">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#seccomp"><span class="toc-text">seccomp</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#seccomp%EB%9E%80"><span class="toc-text">seccomp란?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#seccomp-%EC%82%AC%EC%9A%A9-%EB%B0%A9%EC%8B%9D"><span class="toc-text">seccomp 사용 방식</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#seccomp-tools"><span class="toc-text">seccomp-tools</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%B0%A8%EB%8B%A8%ED%95%B4%EC%95%BC-%ED%95%A0-syscall"><span class="toc-text">차단해야 할 syscall</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EB%B8%94%EB%9E%99%EB%A6%AC%EC%8A%A4%ED%8A%B8-%ED%95%84%ED%84%B0%EC%9D%98-%EB%AC%B8%EC%A0%9C%EC%A0%90"><span class="toc-text">블랙리스트 필터의 문제점</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#openat%EA%B3%BC-execveat"><span class="toc-text">openat과 execveat</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#creat%EA%B3%BC-procfs"><span class="toc-text">creat과 procfs</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ptrace-process-vm-readv-process-vm-writev"><span class="toc-text">ptrace, process_vm_readv, process_vm_writev</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%BB%A8%ED%85%8C%EC%9D%B4%EB%84%88-%ED%83%88%EC%B6%9C"><span class="toc-text">컨테이너 탈출</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%ED%99%94%EC%9D%B4%ED%8A%B8%EB%A6%AC%EC%8A%A4%ED%8A%B8-%ED%95%84%ED%84%B0%EC%9D%98-%EB%AC%B8%EC%A0%9C%EC%A0%90"><span class="toc-text">화이트리스트 필터의 문제점</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%EB%B6%88%EC%99%84%EC%A0%84%ED%95%9C-%EC%9D%B8%EC%9E%90-%EA%B2%80%EC%A6%9D"><span class="toc-text">불완전한 인자 검증</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EC%82%AC%EC%9D%B4%EB%93%9C%EC%B1%84%EB%84%90-%EA%B3%B5%EA%B2%A9"><span class="toc-text">사이드채널 공격</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%97%90%EB%9F%AC-%EA%B4%80%EC%B8%A1"><span class="toc-text">에러 관측</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%B2%98%EB%A6%AC-%EC%8B%9C%EA%B0%84-%EC%B8%A1%EC%A0%95"><span class="toc-text">처리 시간 측정</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98%EC%99%80-syscall-%EB%B2%88%ED%98%B8-%EA%B2%80%EC%A6%9D-%EB%AC%B8%EC%A0%9C"><span class="toc-text">아키텍처와 syscall 번호 검증 문제</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98-%EA%B2%80%EC%A6%9D-%EB%B6%80%EC%8B%A4"><span class="toc-text">아키텍처 검증 부실</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#x32-ABI-%EC%82%AC%EC%9A%A9"><span class="toc-text">x32 ABI 사용</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EA%B8%B0%ED%83%80-%EC%9A%B0%ED%9A%8C-%EC%95%84%EC%9D%B4%EB%94%94%EC%96%B4"><span class="toc-text">기타 우회 아이디어</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%BB%A4%EB%84%90-%EB%98%90%EB%8A%94-%EB%9D%BC%EC%9D%B4%EB%B8%8C%EB%9F%AC%EB%A6%AC-%EA%B2%B0%ED%95%A8-%EC%9D%B4%EC%9A%A9"><span class="toc-text">커널 또는 라이브러리 결함 이용</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%EB%8B%A4%EB%A5%B8-%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4-%EC%95%85%EC%9A%A9"><span class="toc-text">다른 프로세스 악용</span></a></li></ol></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p><code>seccomp</code>는 사용자 공간에서 가장 흔한 샌드박싱 기법 중 하나입니다. seccomp 아래의 exploit는 대개 필터가 무엇을 막지 못했는지 찾는 과정입니다.</p>
+<h2 id="seccomp">seccomp</h2>
+<h3 id="seccomp란">seccomp란?</h3>
+<p>syscall 필터링 메커니즘입니다.</p>
+<h3 id="seccomp-사용-방식">seccomp 사용 방식</h3>
+<p>프로그램이 어떤 syscall을 허용할지 결정하는 필터를 설치합니다.</p>
+<h3 id="seccomp-tools"><code>seccomp-tools</code></h3>
+<p>BPF 기반 seccomp 필터를 분석할 때 매우 편리한 도구입니다.</p>
+<h3 id="차단해야-할-syscall">차단해야 할 syscall</h3>
+<p>약한 샌드박스는 눈에 띄는 syscall만 막고 대체 경로를 놓치는 경우가 많습니다.</p>
+<h2 id="블랙리스트-필터의-문제점">블랙리스트 필터의 문제점</h2>
+<h3 id="openat과-execveat"><code>openat</code>과 <code>execveat</code></h3>
+<p><code>open</code>이나 <code>execve</code>만 막는 것으로는 충분하지 않은 경우가 많습니다.</p>
+<h3 id="creat과-procfs"><code>creat</code>과 procfs</h3>
+<p>대체 파일시스템 경로 또는 보조 syscall이 여전히 강력한 기능을 열어 줄 수 있습니다.</p>
+<h3 id="ptrace-process-vm-readv-process-vm-writev"><code>ptrace</code>, <code>process_vm_readv</code>, <code>process_vm_writev</code></h3>
+<p>프로세스 간 인터페이스가 샌드박스 탈출 경로가 될 수 있습니다.</p>
+<h3 id="컨테이너-탈출">컨테이너 탈출</h3>
+<p>컨테이너 환경에서는 seccomp 문제가 namespace, 파일시스템 문제와 결합되기도 합니다.</p>
+<h2 id="화이트리스트-필터의-문제점">화이트리스트 필터의 문제점</h2>
+<h3 id="불완전한-인자-검증">불완전한 인자 검증</h3>
+<p>허용된 syscall이라도 인자 제약이 부실하면 충분히 악용될 수 있습니다.</p>
+<h2 id="사이드채널-공격">사이드채널 공격</h2>
+<h3 id="에러-관측">에러 관측</h3>
+<p>반환 코드 차이만으로도 정책 정보를 누출할 수 있습니다.</p>
+<h3 id="처리-시간-측정">처리 시간 측정</h3>
+<p>타이밍 차이는 필터링되었는지 실제 실행되었는지를 알려 줄 수 있습니다.</p>
+<h2 id="아키텍처와-syscall-번호-검증-문제">아키텍처와 syscall 번호 검증 문제</h2>
+<h3 id="아키텍처-검증-부실">아키텍처 검증 부실</h3>
+<p>아키텍처 검사가 틀리면 필터 가정 전체가 무너질 수 있습니다.</p>
+<h3 id="x32-ABI-사용">x32 ABI 사용</h3>
+<p>대체 ABI가 필터의 사각지대를 제공하기도 합니다.</p>
+<h2 id="기타-우회-아이디어">기타 우회 아이디어</h2>
+<h3 id="커널-또는-라이브러리-결함-이용">커널 또는 라이브러리 결함 이용</h3>
+<p>커널이나 라이브러리에 버그가 있으면 seccomp 자체가 무의미해질 수 있습니다.</p>
+<h3 id="다른-프로세스-악용">다른 프로세스 악용</h3>
+<p>덜 제한된 다른 프로세스를 capability proxy처럼 이용하는 경우도 있습니다.</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="restricted.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="egg-hunter.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

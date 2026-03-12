@@ -1,0 +1,152 @@
+<%
+const locale = page.lang || config.language || 'ja';
+const localeLabels = {
+  ja: 'JA',
+  en: 'EN',
+  kr: 'KR',
+};
+const uiText = {
+  ja: {
+    menu: {
+      Practice: '/practice/',
+      About: '/about/',
+    },
+    profileTitle: "🐾What's Pawnyable?🐾",
+    contentsTitle: '🐾Contents🐾',
+    authorTitle: '🐾Author🐾',
+    profileDescription: 'Pawnyableは、中〜上級者がpwn(Binary Exploitation)を勉強するための資料です。',
+    contents: {
+      '🐤 Linux Userland [工事中]': '/linux-userland/',
+      '🐺 Linux Kernel': '/linux-kernel/',
+      '🐑 Windows Userland [工事中]': '#/windows-user/',
+      '🐻 Windows Kernel [工事中]': '#/windows-kernel/',
+      '🐼 Browser Exploit [工事中]': '#/browser/',
+      '🐰 VM Escape [工事中]': '#/vm-escape/',
+      '🦝 Android/iOS Exploit [工事中]': '#/phone/',
+      '🐯 and more...? [工事中]': '#/misc/',
+    },
+    author: '著者・挿絵：',
+    paginationPrev: '前のページへ',
+    paginationIndex: '目次へ',
+    paginationNext: '次のページへ',
+    toc: '目次',
+  },
+  en: {
+    menu: {
+      Practice: '/en/practice/',
+      About: '/en/about/',
+    },
+    profileTitle: "🐾What's Pawnyable?🐾",
+    contentsTitle: '🐾Contents🐾',
+    authorTitle: '🐾Author🐾',
+    profileDescription: 'Pawnyable is a learning site for intermediate to advanced readers who want to study pwn and binary exploitation.',
+    contents: {
+      '🐤 Linux Userland [WIP]': '/en/linux-userland/',
+      '🐺 Linux Kernel': '/en/linux-kernel/',
+      '🐑 Windows Userland [WIP]': '#/windows-user/',
+      '🐻 Windows Kernel [WIP]': '#/windows-kernel/',
+      '🐼 Browser Exploit [WIP]': '#/browser/',
+      '🐰 VM Escape [WIP]': '#/vm-escape/',
+      '🦝 Android/iOS Exploit [WIP]': '#/phone/',
+      '🐯 and more...? [WIP]': '#/misc/',
+    },
+    author: 'Author & illustrations: ',
+    paginationPrev: 'Previous',
+    paginationIndex: 'Contents',
+    paginationNext: 'Next',
+    toc: 'Table of Contents',
+  },
+  kr: {
+    menu: {
+      Practice: '/kr/practice/',
+      About: '/kr/about/',
+    },
+    profileTitle: '🐾Pawnyable이란?🐾',
+    contentsTitle: '🐾목차🐾',
+    authorTitle: '🐾저자🐾',
+    profileDescription: 'Pawnyable은 pwn과 Binary Exploitation을 공부하려는 중상급 학습자를 위한 자료 사이트입니다.',
+    contents: {
+      '🐤 Linux Userland [준비 중]': '/kr/linux-userland/',
+      '🐺 Linux Kernel': '/kr/linux-kernel/',
+      '🐑 Windows Userland [준비 중]': '#/windows-user/',
+      '🐻 Windows Kernel [준비 중]': '#/windows-kernel/',
+      '🐼 Browser Exploit [준비 중]': '#/browser/',
+      '🐰 VM Escape [준비 중]': '#/vm-escape/',
+      '🦝 Android/iOS Exploit [준비 중]': '#/phone/',
+      '🐯 and more...? [준비 중]': '#/misc/',
+    },
+    author: '글·일러스트: ',
+    paginationPrev: '이전 페이지',
+    paginationIndex: '목차',
+    paginationNext: '다음 페이지',
+    toc: '목차',
+  },
+};
+const currentUi = uiText[locale] || uiText.ja;
+const translationPool = []
+  .concat(site.pages && site.pages.toArray ? site.pages.toArray() : [])
+  .concat(site.posts && site.posts.toArray ? site.posts.toArray() : []);
+function normalizedSourceKey(entry) {
+  if (!entry) {
+    return null;
+  }
+  if (entry.translation_key) {
+    return entry.translation_key;
+  }
+  if (!entry.source) {
+    return null;
+  }
+  return entry.source.replace(/\.(en|kr)\.md$/, '.md');
+}
+const currentTranslationKey = normalizedSourceKey(page);
+function findTranslation(targetLocale) {
+  if (!currentTranslationKey) {
+    return null;
+  }
+  return translationPool.find(function(entry) {
+    return normalizedSourceKey(entry) === currentTranslationKey && (entry.lang || config.language) === targetLocale;
+  }) || null;
+}
+function localePath(targetLocale) {
+  if (is_home()) {
+    return homePath(targetLocale);
+  }
+  if (targetLocale === locale) {
+    return page.path ? url_for(page.path) : '/';
+  }
+  const translated = findTranslation(targetLocale);
+  return translated ? url_for(translated.path) : null;
+}
+function homePath(targetLocale) {
+  if (targetLocale === 'ja') {
+    return '/';
+  }
+  return '/' + targetLocale + '/';
+}
+function localizedPath(basePath) {
+  if (!basePath) {
+    return homePath(locale);
+  }
+  if (locale === 'ja') {
+    return basePath;
+  }
+  if (basePath === '/') {
+    return homePath(locale);
+  }
+  return '/' + locale + basePath;
+}
+const menuEntries = Object.keys(currentUi.menu).map(function(label) {
+  return {
+    label: label,
+    href: currentUi.menu[label],
+  };
+});
+const languageLinks = ['ja', 'en', 'kr'].map(function(targetLocale) {
+  return {
+    locale: targetLocale,
+    label: localeLabels[targetLocale],
+    href: localePath(targetLocale),
+    active: targetLocale === locale,
+  };
+});
+%>

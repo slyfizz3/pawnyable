@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/introduction/debugging.html">
+
+    <meta name="og:title" content="Debugging the Kernel with gdb - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Debugging the Kernel with gdb | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/introduction/debugging">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/introduction/debugging">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/introduction/debugging">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Debugging the Kernel with gdb
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/introduction/debugging">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/introduction/debugging">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/introduction/debugging">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="introduction.html">Previous</a></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="security.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Getting-a-root-shell"><span class="toc-text">Getting a root shell</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Attaching-to-QEMU"><span class="toc-text">Attaching to QEMU</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Debugging-the-kernel"><span class="toc-text">Debugging the kernel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Debugging-drivers"><span class="toc-text">Debugging drivers</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>One major reason kernel exploitation feels hard to get into is that people do not know how to debug it.<br>
+In this section, we learn how to use <code>gdb</code> to debug a Linux kernel running under QEMU.</p>
+<p>First, download the files for <a href="../LK01/distfiles/LK01.tar.gz">practice problem LK01</a>.</p>
+<h2 id="Getting-a-root-shell">Getting a root shell</h2>
+<p>When debugging kernel exploits locally, running as an ordinary user is often inconvenient. In particular, if you want to place breakpoints inside the kernel or a kernel driver, or check what function an address leak points to, you need root privileges to access kernel address information.<br>
+So when debugging a kernel exploit, first obtain root privileges. The contents of this section are the same as exercise (2) from the previous chapter, so if you already solved it, you can skim this as a review.</p>
+<p>When the kernel boots, it starts by executing one program. Depending on the setup, the path varies, but in many cases it is <code>/init</code> or <code>/sbin/init</code>. If you extract <code>rootfs.cpio</code> from LK01, you will find <code>/init</code>.</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="comment"># devtmpfs does not get automounted for initramfs</span></span><br><span class="line">/bin/mount -t devtmpfs devtmpfs /dev</span><br><span class="line"></span><br><span class="line"><span class="comment"># use the /dev/console device node from devtmpfs if possible to not</span></span><br><span class="line"><span class="comment"># confuse glibc&#x27;s ttyname_r().</span></span><br><span class="line"><span class="comment"># This may fail (E.G. booted with console=), and errors from exec will</span></span><br><span class="line"><span class="comment"># terminate the shell, so use a subshell for the test</span></span><br><span class="line"><span class="keyword">if</span> (<span class="built_in">exec</span> 0&lt;/dev/console) 2&gt;/dev/null; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">exec</span> 0&lt;/dev/console</span><br><span class="line">    <span class="built_in">exec</span> 1&gt;/dev/console</span><br><span class="line">    <span class="built_in">exec</span> 2&gt;/dev/console</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">exec</span> /sbin/init <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br></pre></td></tr></table></figure>
+<p>There is nothing especially important in this file, but it does execute <code>/sbin/init</code>.<br>
+In the small environments often distributed in CTFs, <code>/init</code> itself sometimes directly installs the driver or launches a shell. In fact, if you insert <code>/bin/sh</code> before the last <code>exec</code> line, the kernel will boot straight into a root shell. However, other required initialization such as loading the driver would then be skipped, so we will not modify this file here.</p>
+<p>Eventually, <code>/sbin/init</code> runs a shell script called <code>/etc/init.d/rcS</code>. That script runs files inside <code>/etc/init.d</code> whose names begin with <code>S</code>. In this case there is a script named <code>S99pawnyable</code>. It contains various initialization steps, but pay attention to the following line near the end.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setsid cttyhack setuidgid 1337 sh</span><br></pre></td></tr></table></figure>
+<p>This line is what launches the shell as an unprivileged user when the kernel boots. <code>cttyhack</code> makes terminal input such as Ctrl+C work properly. Then <code>setuidgid</code> sets the user ID and group ID to 1337 before launching <code>/bin/sh</code>. Change that number to 0, which is the root user.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setsid cttyhack setuidgid 0 sh</span><br></pre></td></tr></table></figure>
+<p>Also, as explained in detail in the <a href="security.html">next chapter</a>, comment out the following line as well in order to disable a security mechanism.</p>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="deletion">-echo 2 &gt; /proc/sys/kernel/kptr_restrict    # before</span></span><br><span class="line"><span class="addition">+#echo 2 &gt; /proc/sys/kernel/kptr_restrict   # after</span></span><br></pre></td></tr></table></figure>
+<p>After making the change, repack the <code>cpio</code> archive and run <code>run.sh</code>. You should then be able to use a root shell like in the screenshot below. (For the packing method, see the <a href="introduction.html#disk-images">previous chapter</a>.)</p>
+<center>
+  <img src="img/rooted.png" alt="Launching a root shell" style="width:340px;">
+</center>
+<h2 id="Attaching-to-QEMU">Attaching to QEMU</h2>
+<p>QEMU includes support for debugging with <code>gdb</code>. If you pass the <code>-gdb</code> option to QEMU, you can have it listen on a chosen protocol, host, and port. For example, if you edit <code>run.sh</code> and add the following option, <code>gdb</code> will be able to connect over TCP port 12345 on localhost.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-gdb tcp::12345</span><br></pre></td></tr></table></figure>
+<p>In the exercises below we use port 12345 without further notice, but you can use any port you like.</p>
+<p>To attach from <code>gdb</code>, use the <code>target</code> command.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; target remote localhost:12345</span><br></pre></td></tr></table></figure>
+<p>If the connection succeeds, you are done. From there you can use normal <code>gdb</code> commands to read and write registers and memory, set breakpoints, and so on. Memory addresses are interpreted as the virtual addresses in the context where that breakpoint is set. That means you can set breakpoints directly at the familiar addresses used by a kernel driver or by a user-space program.</p>
+<p>The target here is x86-64. If your <code>gdb</code> does not automatically recognize the architecture, you can set it explicitly as follows. (Usually it is detected automatically.)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; set arch i386:x86-64:intel</span><br></pre></td></tr></table></figure>
+<h2 id="Debugging-the-kernel">Debugging the kernel</h2>
+<p>Through the procfs file <code>/proc/kallsyms</code>, you can view the list of addresses and symbols defined inside the Linux kernel. As explained in the <a href="security.html#kadr-kernel-address-display-restriction">KADR section of the next chapter</a>, security features may hide kernel addresses even from root.<br>
+We already did this in the <a href="#getting-a-root-shell">root shell section</a>, but do not forget to comment out the following line in the init script. Otherwise kernel pointers will not be visible.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict     <span class="comment"># before</span></span><br><span class="line"><span class="comment">#echo 2 &gt; /proc/sys/kernel/kptr_restrict    # after</span></span><br></pre></td></tr></table></figure>
+<p>Now let’s actually look at <code>kallsyms</code>. Since it is huge, use <code>head</code> or a similar command to inspect only the first few lines.</p>
+<center>
+  <img src="img/kallsyms_head.png" alt="Beginning of /proc/kallsyms" style="width:480px;">
+</center>
+<p>The output is arranged as symbol address, section, and symbol name. For example, <code>T</code> means the text section and <code>D</code> means the data section; uppercase letters indicate globally exported symbols. See <code>man nm</code> for the detailed meaning of those letters.<br>
+In the screenshot above, you can see that <code>0xffffffff81000000</code> is the address of the symbol <code>_stext</code>. This corresponds to the kernel base address.</p>
+<p>Next, search for the address of the function named <code>commit_creds</code> using <code>grep</code>. You should find <code>0xffffffff8106e390</code>. Set a breakpoint there in <code>gdb</code> and continue execution.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; break *0xffffffff8106e390</span><br><span class="line">pwndbg&gt; conti</span><br></pre></td></tr></table></figure>
+<p>This function is called when, for example, a new process is created. If you run something like <code>ls</code> in the shell, <code>gdb</code> should stop at the breakpoint.</p>
+<center>
+  <img src="img/commit_creds_bp.png" alt="Stopping at commit_creds with a breakpoint" style="width:720px;">
+</center>
+<p>The first argument in <code>RDI</code> is a pointer into kernel space. Let’s inspect the memory it points to.</p>
+<center>
+  <img src="img/commit_creds_rdi.png" alt="Inspecting memory at commit_creds" style="width:620px;">
+</center>
+<p>As you can see, the same kinds of <code>gdb</code> commands available in user space can also be used in kernel space. Extensions such as <code>pwndbg</code> may also work, but of course features not written for kernel debugging may not behave properly.<br>
+There are also debuggers with <a target="_blank" rel="noopener" href="https://github.com/bata24/gef">kernel-aware features</a>, so feel free to use whichever debugger you prefer.</p>
+<h2 id="Debugging-drivers">Debugging drivers</h2>
+<p>Next, let’s debug a kernel module.<br>
+LK01 loads a kernel module named <code>vuln</code>. You can check the list of loaded modules and their base addresses in <code>/proc/modules</code>.</p>
+<center>
+  <img src="img/modules.png" alt="Contents of /proc/modules" style="width:420px;">
+</center>
+<p>From this you can see that the module <code>vuln</code> is loaded at <code>0xffffffffc0000000</code>. The source code and binary for this module are in the <code>src</code> directory of the distributed files. We will analyze the source in detail in a later chapter, but for now let’s place a breakpoint inside one of its functions.<br>
+If you open <code>src/vuln.ko</code> in IDA or a similar tool, several functions are visible. For example, <code>module_close</code> has a relative address of <code>0x20f</code>.</p>
+<center>
+  <img src="img/module_close.png" alt="module_close seen in IDA" style="width:360px;">
+</center>
+<p>Therefore the start of that function should currently exist at <code>0xffffffffc0000000 + 0x20f</code> in kernel memory. Let’s set a breakpoint there.</p>
+<center>
+  <img src="img/module_close_bp.png" alt="Setting a breakpoint on module_close in gdb" style="width:520px;">
+</center>
+<p>We will analyze the details in the next chapter, but this module is mapped to the file <code>/dev/holstein</code>. If you use the <code>cat</code> command, <code>module_close</code> will be called. Confirm that the breakpoint is hit.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="Wolf" ></div>
+  <p class="says">
+    If you want symbol information for the driver, use the <code>add-symbol-file</code> command. Pass your local driver file as the first argument and the base address as the second argument. Then you can set breakpoints using function names.
+  </p>
+</div>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># cat /dev/holstein</span><br></pre></td></tr></table></figure>
+<p>Commands such as <code>stepi</code> and <code>nexti</code> also work. In other words, debugging in kernel space differs only in how you attach; the available commands and general debugging workflow are basically the same as in user space.</p>
+<hr>
+<div class="column" title="Exercise">
+  In this chapter, we stopped at <code>commit_creds</code> and inspected the memory pointed to by the RDI register. Now try doing the same thing from a shell running with ordinary user privileges (for example when cttyhack sets the uid to 1337).<br>Also compare the root case (uid=0) and the ordinary user case (uid=1337 etc.), and check what differences appear in the data passed as the first argument to <code>commit_creds</code>.
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="introduction.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="security.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

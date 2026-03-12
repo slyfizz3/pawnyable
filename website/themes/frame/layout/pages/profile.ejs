@@ -1,3 +1,60 @@
+<%
+const locale = page.lang || config.language || 'ja';
+const uiText = {
+  ja: {
+    profileTitle: "🐾What's Pawnyable?🐾",
+    contentsTitle: '🐾Contents🐾',
+    authorTitle: '🐾Author🐾',
+    profileDescription: 'Pawnyableは、中〜上級者がpwn(Binary Exploitation)を勉強するための資料です。',
+    contents: {
+      '🐤 Linux Userland [工事中]': '/linux-userland/',
+      '🐺 Linux Kernel': '/linux-kernel/',
+      '🐑 Windows Userland [工事中]': '#/windows-user/',
+      '🐻 Windows Kernel [工事中]': '#/windows-kernel/',
+      '🐼 Browser Exploit [工事中]': '#/browser/',
+      '🐰 VM Escape [工事中]': '#/vm-escape/',
+      '🦝 Android/iOS Exploit [工事中]': '#/phone/',
+      '🐯 and more...? [工事中]': '#/misc/',
+    },
+    author: '著者・挿絵：',
+  },
+  en: {
+    profileTitle: "🐾What's Pawnyable?🐾",
+    contentsTitle: '🐾Contents🐾',
+    authorTitle: '🐾Author🐾',
+    profileDescription: 'Pawnyable is a learning site for intermediate to advanced readers who want to study pwn and binary exploitation.',
+    contents: {
+      '🐤 Linux Userland [WIP]': '/en/linux-userland/',
+      '🐺 Linux Kernel': '/en/linux-kernel/',
+      '🐑 Windows Userland [WIP]': '#/windows-user/',
+      '🐻 Windows Kernel [WIP]': '#/windows-kernel/',
+      '🐼 Browser Exploit [WIP]': '#/browser/',
+      '🐰 VM Escape [WIP]': '#/vm-escape/',
+      '🦝 Android/iOS Exploit [WIP]': '#/phone/',
+      '🐯 and more...? [WIP]': '#/misc/',
+    },
+    author: 'Author & illustrations: ',
+  },
+  kr: {
+    profileTitle: '🐾Pawnyable이란?🐾',
+    contentsTitle: '🐾목차🐾',
+    authorTitle: '🐾저자🐾',
+    profileDescription: 'Pawnyable은 pwn과 Binary Exploitation을 공부하려는 중상급 학습자를 위한 자료 사이트입니다.',
+    contents: {
+      '🐤 Linux Userland [준비 중]': '/kr/linux-userland/',
+      '🐺 Linux Kernel': '/kr/linux-kernel/',
+      '🐑 Windows Userland [준비 중]': '#/windows-user/',
+      '🐻 Windows Kernel [준비 중]': '#/windows-kernel/',
+      '🐼 Browser Exploit [준비 중]': '#/browser/',
+      '🐰 VM Escape [준비 중]': '#/vm-escape/',
+      '🦝 Android/iOS Exploit [준비 중]': '#/phone/',
+      '🐯 and more...? [준비 중]': '#/misc/',
+    },
+    author: '글·일러스트: ',
+  },
+};
+const currentUi = uiText[locale] || uiText.ja;
+%>
 
 <div class="profile">
     <div class="profile-image">
@@ -7,40 +64,31 @@
     </div>
     <div class="post-content profile-content">
         <div class="profile-body">
-            <% /* %>
-            <% Object.keys(theme.profile.langs).forEach(key => { %>
-                <a href="<%=theme.profile.langs[key]%>"><%=key%></a>
-            <% }); %>
-            <% */ %>
-            <!--
-            <a title="I don't have time to internationalize this website. Feel free to make translation PR on GitHub.">English</a>
-            <a title="我的汉语水平低，不能翻译这个网页成中文。请随意在GitHub上创建翻译PR。">简体中文</a>
-            <a title="I don't have time to internationalize this website. Feel free to make translation PR on GitHub.">한국어</a>
-            -->
+            <%- partial('partials/language_switcher') %>
         </div>
         <div class="profile-title">
-            🐾What's Pawnyable?🐾
+            <%= currentUi.profileTitle %>
         </div>
         <div class="profile-body">
-            <%=theme.profile.description%>
+            <%= currentUi.profileDescription %>
         </div>
 
         <div class="profile-title">
-            🐾Contents🐾
+            <%= currentUi.contentsTitle %>
         </div>
         <div class="profile-body">
-            <% Object.keys(theme.profile.links).forEach(key => { %>
+            <% Object.keys(currentUi.contents).forEach(function(key) { %>
                 <div class="profile-link">
-                    <a href="<%=theme.profile.links[key]%>"><%=key%></a> 
+                    <a href="<%=currentUi.contents[key]%>"><%=key%></a> 
                 </div>
             <% }); %>
         </div>
 
         <div class="profile-title">
-            🐾Author🐾
+            <%= currentUi.authorTitle %>
         </div>
         <div class="profile-body">
-            著者・挿絵：<a href="https://twitter.com/ptrYudai" target="_blank">@ptrYudai</a>
+            <%= currentUi.author %><a href="https://twitter.com/ptrYudai" target="_blank">@ptrYudai</a>
         </div>
     </div>
     

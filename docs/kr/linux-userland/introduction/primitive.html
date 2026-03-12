@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="kr">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//kr/linux-userland/introduction/primitive.html">
+
+    <meta name="og:title" content="Primitive란 무엇인가 - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Primitive란 무엇인가 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/kr/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/kr/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/kr/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-userland/introduction/primitive">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/introduction/primitive">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-userland/introduction/primitive">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Primitive란 무엇인가
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-userland/introduction/primitive">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/introduction/primitive">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-userland/introduction/primitive">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="security.html">이전 페이지</a></div>
+            <div class="pagination-index"><a href="../index.html">목차</a></div>
+            <div class="pagination-fd"><a href="environment.html">다음 페이지</a></div>
+        </div>
+    
+    
+        <div class="column" title="목차">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Primitive%EB%9E%80"><span class="toc-text">Primitive란?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EC%9D%BC%EB%B0%98%EC%A0%81%EC%9D%B8-primitive"><span class="toc-text">일반적인 primitive</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RIP-%EC%A0%9C%EC%96%B4"><span class="toc-text">RIP 제어</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%A3%BC%EC%86%8C-%EB%88%84%EC%B6%9C"><span class="toc-text">주소 누출</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#addrof"><span class="toc-text">addrof</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#fakeobj"><span class="toc-text">fakeobj</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AAR"><span class="toc-text">AAR</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AAW"><span class="toc-text">AAW</span></a></li></ol></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>exploit에서 primitive는 버그로부터 얻은 유용한 능력입니다. primitive 관점으로 생각하면 exploit chain을 훨씬 체계적으로 설계할 수 있습니다.</p>
+<h2 id="Primitive란">Primitive란?</h2>
+<p>primitive는 최종 exploit 자체가 아니라 중간 능력입니다. 예를 들면:</p>
+<ul>
+<li>RIP 제어</li>
+<li>정보 누출</li>
+<li>arbitrary read</li>
+<li>arbitrary write</li>
+</ul>
+<h2 id="일반적인-primitive">일반적인 primitive</h2>
+<h3 id="RIP-제어">RIP 제어</h3>
+<p>명령어 포인터 실행 흐름을 직접 제어하는 능력입니다.</p>
+<h3 id="주소-누출">주소 누출</h3>
+<p>랜덤화된 주소를 복구해 ASLR류 보호를 깨는 능력입니다.</p>
+<h3 id="addrof"><code>addrof</code></h3>
+<p>객체의 실제 주소를 알아내는 능력입니다.</p>
+<h3 id="fakeobj"><code>fakeobj</code></h3>
+<p>공격자 제어 메모리를 유효한 객체처럼 다루게 만드는 능력입니다.</p>
+<h3 id="AAR">AAR</h3>
+<p>Arbitrary address read.</p>
+<h3 id="AAW">AAW</h3>
+<p>Arbitrary address write.</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="security.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="environment.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

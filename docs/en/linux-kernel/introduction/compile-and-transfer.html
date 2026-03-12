@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/introduction/compile-and-transfer.html">
+
+    <meta name="og:title" content="Compiling and Transferring the Exploit - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Compiling and Transferring the Exploit | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/introduction/compile-and-transfer">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/introduction/compile-and-transfer">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/introduction/compile-and-transfer">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Compiling and Transferring the Exploit
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/introduction/compile-and-transfer">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/introduction/compile-and-transfer">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/introduction/compile-and-transfer">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="security.html">Previous</a></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="../LK01/welcome-to-holstein.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Running-on-QEMU"><span class="toc-text">Running on QEMU</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Running-on-remote-targets-using-musl-gcc"><span class="toc-text">Running on remote targets: using musl-gcc</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>By now you have learned everything needed to start kernel exploitation: how to boot the kernel, how to debug it, and what security mechanisms matter. From here on, we move to actually writing exploits and to how to run the exploit you wrote inside QEMU.</p>
+<h2 id="Running-on-QEMU">Running on QEMU</h2>
+<p>If you write, build, and run your exploit directly inside QEMU, every kernel crash forces you to start over, which is painful. It is much more practical to build the exploit locally and then send it into the guest.<br>
+Since typing the full workflow every time is tedious, prepare a template shell script. For example, make a <code>transfer.sh</code> like the following:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line">gcc exploit.c -o exploit</span><br><span class="line"><span class="built_in">mv</span> exploit root</span><br><span class="line"><span class="built_in">cd</span> root; find . -print0 | cpio -o --null --format=newc &gt; ../debugfs.cpio</span><br><span class="line"><span class="built_in">cd</span> ../</span><br><span class="line"></span><br><span class="line">qemu-system-x86_64 \</span><br><span class="line">    -m 64M \</span><br><span class="line">    -nographic \</span><br><span class="line">    -kernel bzImage \</span><br><span class="line">    -append <span class="string">&quot;console=ttyS0 loglevel=3 oops=panic panic=-1 nopti nokaslr&quot;</span> \</span><br><span class="line">    -no-reboot \</span><br><span class="line">    -cpu qemu64 \</span><br><span class="line">    -gdb tcp::12345 \</span><br><span class="line">    -smp 1 \</span><br><span class="line">    -monitor /dev/null \</span><br><span class="line">    -initrd debugfs.cpio \</span><br><span class="line">    -net nic,model=virtio \</span><br><span class="line">    -net user</span><br></pre></td></tr></table></figure>
+<p>There is not much to explain here. It simply compiles <code>exploit.c</code>, adds it to the <code>cpio</code>, and boots QEMU. To avoid damaging the original <code>rootfs.cpio</code>, this script uses a disk image named <code>debugfs.cpio</code>, but you can change that if you prefer.<br>
+Also note that when creating the <code>cpio</code>, file permissions will differ unless you run as root, so be careful to execute <code>transfer.sh</code> with root privileges.</p>
+<p>Now put the following code into <code>exploit.c</code> and run <code>transfer.sh</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;Hello, World!&quot;</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>If you do so, you will see an error like the following. Why does this happen?</p>
+<center>
+  <img src="img/gcc_error.png" alt="A GCC-compiled exploit does not run" style="width:320px;">
+</center>
+<p>The reason is that the distributed image uses a compact C library called <code>uClibc</code> instead of the usual <code>libc</code>. Your local GCC environment links against a different <code>libc</code>, so dynamic linking fails and the exploit does not run.<br>
+Therefore, when running an exploit on QEMU, make sure to link it statically.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc exploit.c -o exploit -static</span><br></pre></td></tr></table></figure>
+<p>If you rebuild and run with that change, the program should work.</p>
+<center>
+  <img src="img/static_works.png" alt="The exploit works when statically linked" style="width:320px;">
+</center>
+<h2 id="Running-on-remote-targets-using-musl-gcc">Running on remote targets: using musl-gcc</h2>
+<p>At this point, we can successfully run our exploit on QEMU. The distributed environment used here has networking enabled, so if you want to execute the exploit remotely, you can transfer it from inside QEMU using commands such as <code>wget</code>.<br>
+However, some small environments used in CTFs do not have networking. In that case, you need to transfer a binary from the outside using commands available in busybox. A common method is to use <code>base64</code>, but binaries built with GCC are often hundreds of KB or even tens of MB, so the transfer takes a very long time. The size is large because functions from external libraries such as <code>libc</code> are being statically linked.<br>
+If you want to keep the GCC binary small, you have to avoid libc entirely and define things like <code>read</code> and <code>write</code> yourself using syscalls and inline assembly. Of course, that is very inconvenient.<br>
+For that reason, many CTF players use a C compiler called <code>musl-gcc</code> when writing kernel exploits. Download, build, and install it from the following site.</p>
+<p><a target="_blank" rel="noopener" href="https://www.musl-libc.org/">https://www.musl-libc.org/</a></p>
+<p>After installation, change the compilation line in <code>transfer.sh</code> as follows. Replace the path with wherever you installed <code>musl-gcc</code>.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/musl/bin/musl-gcc exploit.c -o exploit -static</span><br></pre></td></tr></table></figure>
+<p>On the author’s machine, the Hello, World program above was 851 KB when built with <code>gcc</code>, but only 18 KB when built with <code>musl-gcc</code>. If you want it even smaller, you can also strip debug symbols.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="Wolf" ></div>
+  <p class="says">
+    Some header files, especially Linux-kernel-related ones, may not be available in musl-gcc. In such cases you need to add include paths or fall back to gcc. If you want to keep the output small while still using gcc features, one trick is to compile via assembly once.<br>
+    <code>
+    $ gcc -S sample.c -o sample.S<br>
+    $ musl-gcc sample.S -o sample.elf
+    </code>
+  </p>
+</div>
+<p>Once that is done, write a script that transfers the binary to the remote machine over <code>nc</code> using <code>base64</code>. In CTFs, you will use this uploader all the time, so it is worth having your own template ready.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> ptrlib <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">run</span>(<span class="params">cmd</span>):</span><br><span class="line">    sock.sendlineafter(<span class="string">&quot;$ &quot;</span>, cmd)</span><br><span class="line">    sock.recvline()</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">&quot;./root/exploit&quot;</span>, <span class="string">&quot;rb&quot;</span>) <span class="keyword">as</span> f:</span><br><span class="line">    payload = bytes2str(base64.b64encode(f.read()))</span><br><span class="line"></span><br><span class="line"><span class="comment">#sock = Socket(&quot;HOST&quot;, PORT) # remote</span></span><br><span class="line">sock = Process(<span class="string">&quot;./run.sh&quot;</span>)</span><br><span class="line"></span><br><span class="line">run(<span class="string">&#x27;cd /tmp&#x27;</span>)</span><br><span class="line"></span><br><span class="line">logger.info(<span class="string">&quot;Uploading...&quot;</span>)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="built_in">len</span>(payload), <span class="number">512</span>):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;Uploading... <span class="subst">&#123;i:x&#125;</span> / <span class="subst">&#123;<span class="built_in">len</span>(payload):x&#125;</span>&quot;</span>)</span><br><span class="line">    run(<span class="string">&#x27;echo &quot;&#123;&#125;&quot; &gt;&gt; b64exp&#x27;</span>.<span class="built_in">format</span>(payload[i:i+<span class="number">512</span>]))</span><br><span class="line">run(<span class="string">&#x27;base64 -d b64exp &gt; exploit&#x27;</span>)</span><br><span class="line">run(<span class="string">&#x27;rm b64exp&#x27;</span>)</span><br><span class="line">run(<span class="string">&#x27;chmod +x exploit&#x27;</span>)</span><br><span class="line"></span><br><span class="line">sock.interactive()</span><br></pre></td></tr></table></figure>
+<p>After running it for a while, the upload should finish as shown below.</p>
+<center>
+  <img src="img/upload_script.png" alt="Result of running upload.py" style="width:520px;">
+</center>
+<p>On this site you are mainly testing locally, so uploading is not required, but when you use the same workflow in CTFs, this is a good pattern to remember.</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="security.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="../LK01/welcome-to-holstein.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

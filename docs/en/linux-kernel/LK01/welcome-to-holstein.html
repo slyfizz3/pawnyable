@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/LK01/welcome-to-holstein.html">
+
+    <meta name="og:title" content="Analyzing the Holstein Module and Triggering the Vulnerability - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Analyzing the Holstein Module and Triggering the Vulnerability | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/welcome-to-holstein">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK01/welcome-to-holstein">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK01/welcome-to-holstein">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Analyzing the Holstein Module and Triggering the Vulnerability
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/welcome-to-holstein">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK01/welcome-to-holstein">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK01/welcome-to-holstein">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../introduction/compile-and-transfer.html">Previous</a></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="stack_overflow.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Checking-the-initialization-process"><span class="toc-text">Checking the initialization process</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Analyzing-the-Holstein-module"><span class="toc-text">Analyzing the Holstein module</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Initialization-and-cleanup"><span class="toc-text">Initialization and cleanup</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#open"><span class="toc-text">open</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#close"><span class="toc-text">close</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#read"><span class="toc-text">read</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#write"><span class="toc-text">write</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#The-stack-overflow-vulnerability"><span class="toc-text">The stack overflow vulnerability</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Triggering-the-vulnerability"><span class="toc-text">Triggering the vulnerability</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>In LK01 (Holstein), we study the basic attack patterns used in kernel exploitation. If you have not downloaded LK01 yet, first grab <a href="distfiles/LK01.tar.gz">the LK01 exercise files</a> from the introduction chapter.</p>
+<p><code>qemu/rootfs.cpio</code> is the filesystem image. A common first step is to create a <code>mount</code> directory and extract the cpio archive there. Do this as root.</p>
+<h2 id="Checking-the-initialization-process">Checking the initialization process</h2>
+<p>There is a file called <code>/init</code>. After the kernel finishes booting, that is the first program executed in user space. In many CTF kernels this script loads the vulnerable driver, so always inspect it.</p>
+<p>In this challenge <code>/init</code> is just the default script from buildroot, and the driver setup lives in <code>/etc/init.d/S99pawnyable</code> instead.</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="comment">## Setup</span></span><br><span class="line"><span class="comment">##</span></span><br><span class="line">mdev -s</span><br><span class="line">mount -t proc none /proc</span><br><span class="line"><span class="built_in">mkdir</span> -p /dev/pts</span><br><span class="line">mount -vt devpts -o gid=4,mode=620 none /dev/pts</span><br><span class="line"><span class="built_in">chmod</span> 666 /dev/ptmx</span><br><span class="line"><span class="built_in">stty</span> -opost</span><br><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict</span><br><span class="line"><span class="comment">#echo 1 &gt; /proc/sys/kernel/dmesg_restrict</span></span><br><span class="line"></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="comment">## Install driver</span></span><br><span class="line"><span class="comment">##</span></span><br><span class="line">insmod /root/vuln.ko</span><br><span class="line"><span class="built_in">mknod</span> -m 666 /dev/holstein c `grep holstein /proc/devices | awk <span class="string">&#x27;&#123;print $1;&#125;&#x27;</span>` 0</span><br><span class="line"></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="comment">## User shell</span></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\nBoot took <span class="subst">$(cut -d&#x27; &#x27; -f1 /proc/uptime)</span> seconds\n&quot;</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;[ Holstein v1 (LK01) - Pawnyable ]&quot;</span></span><br><span class="line">setsid cttyhack setuidgid 1337 sh</span><br><span class="line"></span><br><span class="line"><span class="comment">##</span></span><br><span class="line"><span class="comment">## Cleanup</span></span><br><span class="line"><span class="comment">##</span></span><br><span class="line">umount /proc</span><br><span class="line">poweroff -d 0 -f</span><br></pre></td></tr></table></figure>
+<p>Several lines are important.</p>
+<p>The first one is:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict</span><br></pre></td></tr></table></figure>
+<p>As already mentioned in the mitigation chapter, this controls kernel address disclosure, so KASLR-related address output is restricted. That is annoying during debugging, so you may want to disable it locally while practicing.</p>
+<p>The following line is commented out:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#echo 1 &gt; /proc/sys/kernel/dmesg_restrict</span></span><br></pre></td></tr></table></figure>
+<p>Many real CTF kernel problems enable this restriction. It controls whether unprivileged users may read <code>dmesg</code>. In this practice setup, <code>dmesg</code> is intentionally left available.</p>
+<p>Next, the module is loaded with:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">insmod /root/vuln.ko</span><br><span class="line"><span class="built_in">mknod</span> -m 666 /dev/holstein c `grep holstein /proc/devices | awk <span class="string">&#x27;&#123;print $1;&#125;&#x27;</span>` 0</span><br></pre></td></tr></table></figure>
+<p>The <code>insmod</code> call loads <code>/root/vuln.ko</code>, and <code>mknod</code> creates a character device called <code>/dev/holstein</code> that is bound to that driver.</p>
+<p>Finally:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setsid cttyhack setuidgid 1337 sh</span><br></pre></td></tr></table></figure>
+<p>This launches <code>sh</code> as UID 1337. That is why you get an immediate shell without a login prompt.</p>
+<p>While debugging, it is convenient to change that UID to <code>0</code> and give yourself a root shell directly.</p>
+<p>There are also other initialization scripts under <code>/etc/init.d</code>, such as <code>S01syslogd</code> and <code>S41dhcpcd</code>. For local debugging those are often unnecessary. Moving them out of the way can reduce boot time by a few seconds.</p>
+<h2 id="Analyzing-the-Holstein-module">Analyzing the Holstein module</h2>
+<p>The vulnerable kernel module source code is in <code>src/vuln.c</code>. Let’s read it from top to bottom.</p>
+<h3 id="Initialization-and-cleanup">Initialization and cleanup</h3>
+<p>Every kernel module defines initialization and cleanup code.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">module_init(module_initialize);</span><br><span class="line">module_exit(module_cleanup);</span><br></pre></td></tr></table></figure>
+<p>These lines register the startup and shutdown routines. First, look at <code>module_initialize</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">module_initialize</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">if</span> (alloc_chrdev_region(&amp;dev_id, <span class="number">0</span>, <span class="number">1</span>, DEVICE_NAME)) &#123;</span><br><span class="line">    printk(KERN_WARNING <span class="string">&quot;Failed to register device\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EBUSY;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  cdev_init(&amp;c_dev, &amp;module_fops);</span><br><span class="line">  c_dev.owner = THIS_MODULE;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (cdev_add(&amp;c_dev, dev_id, <span class="number">1</span>)) &#123;</span><br><span class="line">    printk(KERN_WARNING <span class="string">&quot;Failed to add cdev\n&quot;</span>);</span><br><span class="line">    unregister_chrdev_region(dev_id, <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">return</span> -EBUSY;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>To make the module accessible from user space, the kernel must expose an interface. In this case the interface is a character device because the code uses <code>cdev_add</code>.</p>
+<p>At this stage nothing appears under <code>/dev</code> yet. As we saw above, the actual device file <code>/dev/holstein</code> is created later by <code>mknod</code>.</p>
+<p>The interesting part is this line:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cdev_init(&amp;c_dev, &amp;module_fops);</span><br></pre></td></tr></table></figure>
+<p>The second argument is a pointer to a function table:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">module_fops</span> =</span></span><br><span class="line">  &#123;</span><br><span class="line">   .owner   = THIS_MODULE,</span><br><span class="line">   .read    = module_read,</span><br><span class="line">   .write   = module_write,</span><br><span class="line">   .open    = module_open,</span><br><span class="line">   .release = module_close,</span><br><span class="line">  &#125;;</span><br></pre></td></tr></table></figure>
+<p>That table connects user actions on <code>/dev/holstein</code>, such as <code>read</code>, <code>write</code>, and <code>open</code>, to the corresponding module functions.</p>
+<p>The cleanup code is simple:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> __exit <span class="title function_">module_cleanup</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  cdev_del(&amp;c_dev);</span><br><span class="line">  unregister_chrdev_region(dev_id, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="open"><code>open</code></h3>
+<p>Now look at <code>module_open</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_open called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  g_buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);</span><br><span class="line">  <span class="keyword">if</span> (!g_buf) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;kmalloc failed&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>printk</code> writes to the kernel log buffer. You can read those messages with <code>dmesg</code>.</p>
+<p>The important part is <code>kmalloc</code>, which is the kernel equivalent of <code>malloc</code>. It allocates <code>BUFFER_SIZE</code> bytes from the kernel heap and stores the pointer in the global variable <code>g_buf</code>.</p>
+<p>So opening the device allocates a <code>0x400</code>-byte kernel heap buffer.</p>
+<h3 id="close"><code>close</code></h3>
+<p>Next is <code>module_close</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_close</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_close called\n&quot;</span>);</span><br><span class="line">  kfree(g_buf);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>kfree</code> is the matching free operation for <code>kmalloc</code>.</p>
+<p>This is the normal behavior you would expect: the buffer allocated in <code>open</code> is released in <code>close</code>.</p>
+<p>In fact, there is already a bug here that can lead to privilege escalation later, but we will postpone that to a later chapter.</p>
+<h3 id="read"><code>read</code></h3>
+<p><code>module_read</code> is called when user space performs a <code>read</code> system call.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_read</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br><span class="line"><span class="params">                        <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br><span class="line"><span class="params">                        <span class="type">loff_t</span> *f_pos)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> kbuf[BUFFER_SIZE] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line"></span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_read called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">memcpy</span>(kbuf, g_buf, BUFFER_SIZE);</span><br><span class="line">  <span class="keyword">if</span> (_copy_to_user(buf, kbuf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_to_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The function first copies <code>BUFFER_SIZE</code> bytes from <code>g_buf</code> into a stack buffer called <code>kbuf</code>, then copies <code>count</code> bytes of that stack buffer into user space.</p>
+<p>The helper used here is <code>_copy_to_user</code>, which is a lower-level form of <code>copy_to_user</code> that skips some of the safer stack overflow checking.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="Wolf" ></div>
+  <p class="says">
+    `copy_to_user` and `copy_from_user` are often implemented as inline helpers that perform additional size checks when possible.
+  </p>
+</div>
+<p>So the <code>read</code> path copies the heap buffer into the stack and then returns some of that stack data to user space.</p>
+<h3 id="write"><code>write</code></h3>
+<p>Finally, look at <code>module_write</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_write</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br><span class="line"><span class="params">                            <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br><span class="line"><span class="params">                            <span class="type">loff_t</span> *f_pos)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> kbuf[BUFFER_SIZE] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line"></span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_write called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (_copy_from_user(kbuf, buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_from_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">memcpy</span>(g_buf, kbuf, BUFFER_SIZE);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>First, user input is copied into the stack buffer <code>kbuf</code> by <code>_copy_from_user</code>. Then the entire <code>BUFFER_SIZE</code> bytes are copied into <code>g_buf</code>.</p>
+<h2 id="The-stack-overflow-vulnerability">The stack overflow vulnerability</h2>
+<p>At this point you should already have found at least one vulnerability. In this chapter we focus on the stack overflow in <code>module_write</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_write</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br><span class="line"><span class="params">                            <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br><span class="line"><span class="params">                            <span class="type">loff_t</span> *f_pos)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> kbuf[BUFFER_SIZE] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line"></span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_write called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (_copy_from_user(kbuf, buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_from_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">memcpy</span>(g_buf, kbuf, BUFFER_SIZE);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The bug is obvious: <code>count</code> comes directly from user space, but <code>kbuf</code> is only <code>0x400</code> bytes long. If <code>count</code> is larger, <code>_copy_from_user</code> overflows the kernel stack buffer.</p>
+<p>Kernel function calls use the same basic calling convention ideas as user-space code, so if you can smash the return address, you can also build a ROP chain.</p>
+<h2 id="Triggering-the-vulnerability">Triggering the vulnerability</h2>
+<p>Before abusing the bug, it is useful to write a normal test program that just talks to the device and confirms the interface works. From there, increase the write size until the bug is triggered and study the resulting crash in gdb.</p>
+<p>That crash is the starting point for the real exploit in the next chapter.</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../introduction/compile-and-transfer.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="stack_overflow.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

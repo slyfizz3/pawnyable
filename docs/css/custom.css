@@ -24,12 +24,10 @@
 }
 .says {
   max-width: 640px;
-  display: flex;
-  flex-wrap: wrap;
   position: relative;
   padding: 17px 13px 15px 18px;
   border-radius: 12px;
-  background: #f0f0f0;
+  background: #e0e0e0;
   box-sizing: border-box;
   margin: 0 !important;
   line-height: 1.5;
@@ -46,12 +44,12 @@
   border: 10px solid transparent;
 }
 .balloon_l .says:after {
-  left: -26px;
-  border-right: 22px solid #f0f0f0;
+  left: -32px;
+  border-right: 22px solid #e0e0e0;
 }
 .balloon_r .says:after {
-  right: -26px;
-  border-left: 22px solid #f0f0f0;
+  right: -32px;
+  border-left: 22px solid #e0e0e0;
 }
 /* コラム */
 .column {

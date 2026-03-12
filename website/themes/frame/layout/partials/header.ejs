@@ -1,27 +1,42 @@
+<%
+const locale = page.lang || config.language || 'ja';
+const localizedMenus = {
+  ja: { Practice: '/practice/', About: '/about/' },
+  en: { Practice: '/en/practice/', About: '/en/about/' },
+  kr: { Practice: '/kr/practice/', About: '/kr/about/' },
+};
+const menuEntries = Object.keys(localizedMenus[locale] || localizedMenus.ja).map(function(label) {
+  return { label: label, href: (localizedMenus[locale] || localizedMenus.ja)[label] };
+});
+function homePath(targetLocale) {
+  return targetLocale === 'ja' ? '/' : '/' + targetLocale + '/';
+}
+%>
 <div class="header">
   <div class="flex-container">
     <div class="header-inner">
       <div class="site-brand-container">
-        <a href="/"><%= theme.site_brand_name %></a>
+        <a href="<%= homePath(locale) %>"><%= theme.site_brand_name %></a>
       </div>
       <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
         Menu
       </div>
       <nav class="site-nav">
         <ul class="menu-list">
-          <% Object.keys(theme.menu).forEach(key => { %>
-            <% if (url_for(theme.menu[key]) + "index.html" == url_for(page.path)) {%>
+          <% menuEntries.forEach(function(item) { %>
+            <% if (url_for(item.href) + "index.html" == url_for(page.path)) {%>
               <li class="menu-item menu-item-active">
-                <a href="<%=theme.menu[key]%>"><%=key%></a>
+                <a href="<%=item.href%>"><%=item.label%></a>
               </li> 
             <%} else {%>
               <li class="menu-item">
-                <a href="<%=theme.menu[key]%>"><%=key%></a>
+                <a href="<%=item.href%>"><%=item.label%></a>
               </li> 
             <% }%>       
           <% }); %>
         </ul>
       </nav>
+      <%- partial('partials/language_switcher') %>
     </div>
   </div>
 </div>

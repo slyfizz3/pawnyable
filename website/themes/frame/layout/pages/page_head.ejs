@@ -1,3 +1,12 @@
+<%
+const locale = page.lang || config.language || 'ja';
+const uiText = {
+  ja: { paginationPrev: '前のページへ', paginationIndex: '目次へ', paginationNext: '次のページへ', toc: '目次' },
+  en: { paginationPrev: 'Previous', paginationIndex: 'Contents', paginationNext: 'Next', toc: 'Table of Contents' },
+  kr: { paginationPrev: '이전 페이지', paginationIndex: '목차', paginationNext: '다음 페이지', toc: '목차' },
+};
+const currentUi = uiText[locale] || uiText.ja;
+%>
 <div class="post-head">
     <div class="post-info">
         <div class="post-title">
@@ -9,15 +18,16 @@
         </div>
     </div>
     <div class="h-line-primary"></div>
+    <%- partial('partials/language_switcher') %>
     <% if (page.pagination) { %>
         <div class="pagination">
-            <div class="pagination-bk"><% if (page.bk) { %><a href="<%= page.bk %>">前のページへ</a><% } else { %><span></span><% } %></div>
-            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
-            <div class="pagination-fd"><% if (page.fd) { %><a href="<%= page.fd %>">次のページへ</a><% } %></div>
+            <div class="pagination-bk"><% if (page.bk) { %><a href="<%= page.bk %>"><%= currentUi.paginationPrev %></a><% } else { %><span></span><% } %></div>
+            <div class="pagination-index"><a href="../index.html"><%= currentUi.paginationIndex %></a></div>
+            <div class="pagination-fd"><% if (page.fd) { %><a href="<%= page.fd %>"><%= currentUi.paginationNext %></a><% } %></div>
         </div>
     <% } %>
     <% if (!page.hide_toc) { %>
-        <div class="column" title="目次">
+        <div class="column" title="<%= currentUi.toc %>">
             <%- toc(page.content, config.toc) %>
         </div>
     <% } %>

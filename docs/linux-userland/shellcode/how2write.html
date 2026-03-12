@@ -64,7 +64,7 @@
 
   <style type="text/css">
 .spoiler {
-  display: inline-flex;
+  display: inline;
 }
 p.spoiler {
   display: flex;
@@ -99,7 +99,8 @@ p.spoiler {
 
     <div class="wrapper">
 
-      <div class="header">
+      
+<div class="header">
   <div class="flex-container">
     <div class="header-inner">
       <div class="site-brand-container">
@@ -125,6 +126,23 @@ p.spoiler {
           
         </ul>
       </nav>
+      
+<div class="language-switcher">
+  
+    
+      <a class="language-link language-link-active" href="/linux-userland/shellcode/how2write">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/how2write">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-userland/shellcode/how2write">KR</a>
+    
+  
+</div>
+
     </div>
   </div>
 </div>
@@ -135,7 +153,8 @@ p.spoiler {
           <article id="post">
 
   
-    <div class="post-head">
+    
+<div class="post-head">
     <div class="post-info">
         <div class="post-title">
             
@@ -145,9 +164,31 @@ p.spoiler {
     </div>
     <div class="h-line-primary"></div>
     
+<div class="language-switcher">
+  
+    
+      <a class="language-link language-link-active" href="/linux-userland/shellcode/how2write">JA</a>
+    
+  
+    
+      <a class="language-link" href="/en/linux-userland/shellcode/how2write">EN</a>
+    
+  
+    
+      <a class="language-link" href="/kr/linux-userland/shellcode/how2write">KR</a>
+    
+  
+</div>
+
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../introduction/environment.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="restricted.html">次のページへ</a></div>
+        </div>
+    
     
         <div class="column" title="目次">
-            
             <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89%E3%81%AFNX%E3%81%A7%E6%B6%88%E6%BB%85%E3%81%97%E3%81%9F%EF%BC%9F"><span class="toc-text">シェルコードはNXで消滅した？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E3%82%B5%E3%83%B3%E3%83%89%E3%83%9C%E3%83%83%E3%82%AF%E3%82%B9%E4%B8%8B%E3%81%A7%E3%81%AE%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89"><span class="toc-text">サンドボックス下でのシェルコード</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#JIT%E3%81%A8%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89"><span class="toc-text">JITとシェルコード</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E3%82%B7%E3%82%A7%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89%E3%82%92%E6%9B%B8%E3%81%84%E3%81%A6%E3%81%BF%E3%82%88%E3%81%86"><span class="toc-text">シェルコードを書いてみよう</span></a></li></ol>
         </div>
     
@@ -155,20 +196,6 @@ p.spoiler {
 
     <div class="post-content">
     <p>Binary Exploitを勉強する際に最初に登場するシェルコードですが、CTFの場合ほとんどの問題では使いません。そのためシェルコードについて深く勉強できる資料は少ないですが、実際にはとても重要です。シェルコードの書き方をひよこ先生に教えてもらいましょう。</p>
-<div class="column" title="目次">
-<!-- toc -->
-<ul>
-<li><a href="#-------nx------">シェルコードはNXで消滅した？</a>
-<ul>
-<li><a href="#----------------">サンドボックス下でのシェルコード</a></li>
-<li><a href="#jit-------">JITとシェルコード</a></li>
-</ul>
-</li>
-<li><a href="#-------------">シェルコードを書いてみよう</a></li>
-</ul>
-<!-- tocstop -->
-<br>
-</div>
 <h2 id="シェルコードはNXで消滅した？">シェルコードはNXで消滅した？</h2>
 <p>シェルコードはもともと名前の通り、「シェルを起動する機械語」にちなんで登場した言葉ですが、実際には「攻撃に利用する機械語」程度の意味合いで使われています。言葉の定義はどうでも良いので、その内容を確認していきましょう。</p>
 <p>シェルコードが他の手法よりも大きく優れているのは安定性です。関数ポインタを書き換えてsystem関数を呼び出したり、ROPによるコード実行は通常バイナリ依存となります。実世界の攻撃で、攻撃対象として動いているバイナリとまったく同じものを入手するのは困難なことが多いです。そのため、ROPを使う場合はバージョンごとにROP chainを分けてexploit中に記載します。しかし、シェルコードの場合はアドレスさえリークできていれば、そこへジャンプするだけで確実にコードが実行できます。</p>
@@ -188,7 +215,7 @@ p.spoiler {
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">01h: 31 C0    xor eax, eax</span><br><span class="line">03h: EB 01    jmp 6h</span><br><span class="line">05h: 05       db 05h</span><br><span class="line">06h: B0 3C    mov al, 60</span><br><span class="line">08h: EB 01    jmp Bh</span><br><span class="line">0Ah: 2D       db 2Dh</span><br><span class="line">0Bh: 0F 05    syscall</span><br><span class="line">0Dh: C3       ret</span><br></pre></td></tr></table></figure>
 <p>eaxを60にしてシステムコールを呼び出す機械語になってしまいました。このように、JITが存在する場合は例えその領域が書き込み不能でも、中のコードで使われる定数をある程度制御できる場合、シェルコードやROP gadgetを攻撃者が用意できます。</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_jito.png" alt="ひよこ先生" ></div>
   <p class="says">
     このような手法を<strong>Bring Your Own Gadget</strong>などと呼ぶよ。
     対策として、定数を参照やエンコードした状態に置き換えて機械語中に登場させないConstant Blindingという手法があるよ。
@@ -206,7 +233,7 @@ p.spoiler {
 3つ目に、インターネット上のシェルコードの中には不思議なほど短さを意識しているものがあります。数バイト単位の字数制限が要求される状況は滅多にないどころか、極端に短いシェルコードはむしろ欠点があります。短いシェルコードはレジスタやスタックの初期状態を仮定している場合が多く、そのまま使おうとすると動かないケースがあります。短いけど動かないシェルコードを書くくらいなら、長くても読みやすいシェルコードを心がけましょう。</p>
 <p>また、検索で出てくるシェルコードは「<code>/bin/sh</code>を起動する」であったり「リバースシェルを取る」であったり、一般的な状況で使えるように設計された典型的な処理が多いです。しかし、実際に要求されるのは状況に応じた複雑な処理ですし、そもそも典型的な処理すらすぐにアセンブリで書けないようではpawnyableの世界で生きていけません。（複雑なシェルコードは後の章で実践します。）</p>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_yaba.png" alt="ひよこ先生" ></div>
   <p class="says">
     自然界は厳しいのでコマンドを呼び出すシェルコードも手書きできないようでは生きていけない。
   </p>
@@ -234,10 +261,10 @@ p.spoiler {
 書き込み領域がない場合は先にmmapを呼んでデータ領域を確保しても構いません。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">  xor edx, edx</span><br><span class="line">  push rdx</span><br><span class="line">  lea rdi, [rel s_arg2]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg1]</span><br><span class="line">  push rdi</span><br><span class="line">  lea rdi, [rel s_arg0]</span><br><span class="line">  push rdi</span><br><span class="line">  mov rsi, rsp</span><br><span class="line">  ...</span><br><span class="line">s_arg2: db &quot;/bin/ls -lha&quot;, 0</span><br><span class="line">s_arg1: db &quot;-c&quot;, 0</span><br><span class="line">s_arg0: db &quot;/bin/sh&quot;, 0</span><br></pre></td></tr></table></figure>
 <div class="balloon_l">
-  <div class="faceicon"><img src="../img/piyo.jpg" alt="ひよこ先生" ></div>
+  <div class="faceicon"><img src="../img/piyo_born.png" alt="ひよこ先生" ></div>
   <p class="says">
     x86-64では32-bitのレジスタに結果を代入すると自動的に64-bitに符号拡張されるよ。
-    だから「xor eax,eax」で確実にraxを0にできるんだね。
+    だから<code>xor eax,eax</code>で確実にraxを0にできるんだね。
   </p>
 </div>
 <p>こちらもcall命令を利用することで短くできますが、可読性は若干失われます。</p>
@@ -300,6 +327,12 @@ s_arg2: db "/bin/ls -lha", 0
 
 <div style="margin-top: 1em">
     <div class="h-line-primary"></div>
+    
+        <div class="pagination">
+            <div class="pagination-bk"><a href="../introduction/environment.html">前のページへ</a></div>
+            <div class="pagination-index"><a href="../index.html">目次へ</a></div>
+            <div class="pagination-fd"><a href="restricted.html">次のページへ</a></div>
+        </div>
     
 </div>
 
