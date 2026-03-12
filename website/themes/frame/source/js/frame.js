@@ -27,31 +27,27 @@ function toggleMenu() {
   }
 }
 
-function setLanguage(lang) {
-  localStorage.setItem("pawnyable-lang", lang);
-  applyLanguage(lang);
+function setGoogleTranslateCookie(lang) {
+  var value = lang === "ja" ? "/auto/ja" : "/ja/" + lang;
+  var cookie = "googtrans=" + value + ";path=/";
+  document.cookie = cookie;
+  document.cookie = cookie + ";domain=" + location.hostname;
 }
 
-function applyLanguage(lang) {
-  var supported = ["ja", "ko", "en"];
-  if (supported.indexOf(lang) === -1) {
-    lang = "ja";
-  }
+function setLanguage(lang) {
+  localStorage.setItem("pawnyable-lang", lang);
+  setGoogleTranslateCookie(lang);
+  location.reload();
+}
 
-  var i18nNodes = document.querySelectorAll(".i18n");
-  for (var i = 0; i < i18nNodes.length; i++) {
-    var text = i18nNodes[i].getAttribute("data-" + lang);
-    if (text) {
-      i18nNodes[i].innerHTML = text;
-    }
-  }
-
+function updateLanguageButtons() {
+  var lang = localStorage.getItem("pawnyable-lang") || "ja";
   var buttons = document.querySelectorAll(".lang-btn");
-  for (var j = 0; j < buttons.length; j++) {
-    if (buttons[j].getAttribute("data-lang") === lang) {
-      buttons[j].classList.add("active");
+  for (var i = 0; i < buttons.length; i++) {
+    if (buttons[i].getAttribute("data-lang") === lang) {
+      buttons[i].classList.add("active");
     } else {
-      buttons[j].classList.remove("active");
+      buttons[i].classList.remove("active");
     }
   }
 }
@@ -59,6 +55,5 @@ function applyLanguage(lang) {
 function detectors() {
   detectTaskList();
   detectBlockTable();
-  var lang = localStorage.getItem("pawnyable-lang") || "ja";
-  applyLanguage(lang);
+  updateLanguageButtons();
 }
