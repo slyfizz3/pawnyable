@@ -63,10 +63,29 @@
                 margin-top $margin-m-1
                 height auto
                 flex-direction column
-                 
 
-        
 
-        
+.lang-switcher
+    display flex
+    margin-left $margin-m-0
+    gap 6px
 
-    
+.lang-btn
+    background transparent
+    border $line-primary solid $color-text-secondary
+    color $color-text-secondary
+    cursor pointer
+    font-size 12px
+    line-height 1
+    padding 4px 6px
+
+    &.active
+        border-color $color-text-primary
+        color $color-text-primary
+
+@media (max-width: 688px)
+    .header-inner
+        .lang-switcher
+            width 100%
+            justify-content flex-end
+            margin-top $margin-m-1
