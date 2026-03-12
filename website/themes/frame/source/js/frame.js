@@ -27,21 +27,32 @@ function toggleMenu() {
   }
 }
 
-function setGoogleTranslateCookie(lang) {
-  var value = lang === "ja" ? "/auto/ja" : "/ja/" + lang;
-  var cookie = "googtrans=" + value + ";path=/";
-  document.cookie = cookie;
-  document.cookie = cookie + ";domain=" + location.hostname;
+function currentLanguageFromPath() {
+  var path = window.location.pathname;
+  if (path.indexOf("/ko/") === 0) return "ko";
+  if (path.indexOf("/en/") === 0) return "en";
+  return "ja";
+}
+
+function pathForLanguage(lang) {
+  var path = window.location.pathname;
+  var search = window.location.search || "";
+  var hash = window.location.hash || "";
+  if (path.indexOf("/ko/") === 0) path = path.slice(3);
+  if (path.indexOf("/en/") === 0) path = path.slice(3);
+
+  if (lang === "ja") {
+    return path + search + hash;
+  }
+  return "/" + lang + path + search + hash;
 }
 
 function setLanguage(lang) {
-  localStorage.setItem("pawnyable-lang", lang);
-  setGoogleTranslateCookie(lang);
-  location.reload();
+  window.location.href = pathForLanguage(lang);
 }
 
 function updateLanguageButtons() {
-  var lang = localStorage.getItem("pawnyable-lang") || "ja";
+  var lang = currentLanguageFromPath();
   var buttons = document.querySelectorAll(".lang-btn");
   for (var i = 0; i < buttons.length; i++) {
     if (buttons[i].getAttribute("data-lang") === lang) {

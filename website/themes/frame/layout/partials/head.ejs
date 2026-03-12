@@ -77,23 +77,3 @@ if (is_archive()){
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <% } %>
-
-
-
-
-<div id="google_translate_element" style="display:none"></div>
-<script>
-  (function () {
-    var saved = localStorage.getItem('pawnyable-lang') || 'ja';
-    var value = saved === 'ja' ? '/auto/ja' : '/ja/' + saved;
-    document.cookie = 'googtrans=' + value + ';path=/';
-    document.cookie = 'googtrans=' + value + ';path=/;domain=' + location.hostname;
-  })();
-  function googleTranslateElementInit() {
-    new google.translate.TranslateElement({
-      pageLanguage: 'ja',
-      autoDisplay: false
-    }, 'google_translate_element');
-  }
-</script>
-<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
